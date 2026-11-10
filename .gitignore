@@ -60,3 +60,15 @@ ml/mlartifacts/
 # Trained model binaries (the model card is committed)
 ml/artifacts/*
 !ml/artifacts/.gitkeep
+
+# --- publish baseline (required) ---
+.venv/
+.pgdata/
+.env
+__pycache__/
+*.pkl
+*.parquet
+*.duckdb
+logs/
+*.log
+.forbidden-terms

@@ -1,6 +1,6 @@
 # Messy Client Data → Decisioning
 
-Portfolio case study for the fictional client Credara Fintech, **synthetic data only**. Milestones M1–M3 and the M4 scoring API, Dockerfile, and drift monitor are in this tree. Gold/metrics models and the Streamlit dashboard are owned by Analytics Engineering. The English Proof of Value is not started. This repository is local-only and must not be published without the owner's approval.
+Portfolio case study for the fictional client Credara Fintech, **synthetic data only**. Milestones M1–M3 and the M4 scoring API, Dockerfile, and drift monitor are in this tree. Gold/metrics models and the Streamlit dashboard are owned by Analytics Engineering. An English Proof of Value draft is in progress (`docs/proof-of-value.md`, WIP); M5 is pending. **Work in progress** — published as an unfinished portfolio project.
 
 ## Fictional client
 
@@ -44,7 +44,7 @@ Raw batch `batch_002` uses a semicolon delimiter and ISO-8859-1 encoding, and re
 | M1 | Repo, synthetic generator, issue log, contract, tests | Delivered |
 | M2 | dbt bronze/silver, quality tests, data-quality report, generator observability and counterfactuals | Delivered in this tree |
 | M3 | Explainable credit model (`baseline_logreg_v1`, `gbm_v1`) and `predictions_scores` | Done locally (see `docs/modeling_plan.md` and `docs/model_card.md`) |
-| M4 | Scoring API, Dockerfile, drift monitor; dashboard (AE); Proof of Value (English) | API, container file, and drift monitor done locally. Dashboard code exists (AE). PoV not started. |
+| M4 | Scoring API, Dockerfile, drift monitor; dashboard (AE); Proof of Value (English) | API, container file, and drift monitor done locally. Dashboard code exists (AE). PoV draft in progress (WIP). |
 
 ## How to run (local only)
 
