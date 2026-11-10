@@ -56,3 +56,7 @@ dbt/.user.yml
 # MLflow local file store
 ml/mlruns/
 ml/mlartifacts/
+
+# Trained model binaries (the model card is committed)
+ml/artifacts/*
+!ml/artifacts/.gitkeep

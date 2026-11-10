@@ -1,0 +1,541 @@
+{
+  "client": "Credara Fintech (fictional)",
+  "is_synthetic": true,
+  "scored_at": "2026-11-10T19:55:51+00:00",
+  "splits": {
+    "train_end": "2024-07-01",
+    "tune_end": "2024-10-01",
+    "calib_end": "2025-01-01",
+    "last_observable_disbursement": "2025-08-02",
+    "sizes": {
+      "train": 15634,
+      "tune": 2679,
+      "calib": 2616,
+      "oot_main": 6022
+    }
+  },
+  "metrics": {
+    "baseline_logreg_v1": {
+      "train": {
+        "n": 15634,
+        "defaults": 1710,
+        "default_rate": 0.10937699884866317,
+        "auc": 0.7477992897113992,
+        "ks": 0.38419330668911095,
+        "brier": 0.08787574160886932,
+        "top_decile_bad_rate": 0.3350383631713555
+      },
+      "validation_tune": {
+        "n": 2679,
+        "defaults": 289,
+        "default_rate": 0.10787607316162748,
+        "auc": 0.7170469516873942,
+        "ks": 0.3412676810817854,
+        "brier": 0.0891322477703027,
+        "top_decile_bad_rate": 0.31716417910447764
+      },
+      "validation_calib": {
+        "n": 2616,
+        "defaults": 263,
+        "default_rate": 0.10053516819571866,
+        "auc": 0.7120309159571391,
+        "ks": 0.34654894083921667,
+        "brier": 0.08344343358088022,
+        "top_decile_bad_rate": 0.2900763358778626
+      },
+      "oot_main": {
+        "n": 6022,
+        "defaults": 668,
+        "default_rate": 0.11092660245765526,
+        "auc": 0.7172608928575422,
+        "ks": 0.3489097635882512,
+        "brier": 0.09036961779141683,
+        "top_decile_bad_rate": 0.33665008291873966,
+        "auc_ci": [
+          0.695745543180817,
+          0.7391507375558862
+        ],
+        "ks_ci": [
+          0.31239959787738364,
+          0.3895531088774331
+        ]
+      }
+    },
+    "gbm_v1": {
+      "train": {
+        "n": 15634,
+        "defaults": 1710,
+        "default_rate": 0.10937699884866317,
+        "auc": 0.7804795582031782,
+        "ks": 0.4121212732107968,
+        "brier": 0.08525115019267437,
+        "top_decile_bad_rate": 0.3906649616368286
+      },
+      "validation_tune": {
+        "n": 2679,
+        "defaults": 289,
+        "default_rate": 0.10787607316162748,
+        "auc": 0.7279342994889316,
+        "ks": 0.3566894934198144,
+        "brier": 0.0897870162673902,
+        "top_decile_bad_rate": 0.332089552238806
+      },
+      "validation_calib": {
+        "n": 2616,
+        "defaults": 263,
+        "default_rate": 0.10053516819571866,
+        "auc": 0.7378930545747764,
+        "ks": 0.3765195794059521,
+        "brier": 0.08248116671164377,
+        "top_decile_bad_rate": 0.3015267175572519
+      },
+      "oot_main": {
+        "n": 6022,
+        "defaults": 668,
+        "default_rate": 0.11092660245765526,
+        "auc": 0.7491650990137768,
+        "ks": 0.3902851748874309,
+        "brier": 0.08873989617841378,
+        "top_decile_bad_rate": 0.351575456053068,
+        "auc_ci": [
+          0.7298790536118709,
+          0.7687867010932505
+        ],
+        "ks_ci": [
+          0.3534859101071304,
+          0.4290518138951316
+        ]
+      }
+    },
+    "bureau_score": {
+      "oot_main": {
+        "n": 6022,
+        "defaults": 668,
+        "default_rate": 0.11092660245765526,
+        "auc": 0.7497259869502684,
+        "ks": 0.3701770907195695,
+        "brier": null,
+        "top_decile_bad_rate": 0.35323383084577115,
+        "score_direction": "negated (higher bureau = lower risk)"
+      }
+    }
+  },
+  "calibration": {
+    "baseline_logreg_v1": {
+      "calibration": {
+        "before": 0.08520072141381481,
+        "after": 0.08344343358088022
+      },
+      "oot_main": {
+        "before": 0.09008137111648178,
+        "after": 0.09036961779141683
+      }
+    },
+    "gbm_v1": {
+      "calibration": {
+        "before": 0.08402776023561487,
+        "after": 0.08248116671164377
+      },
+      "oot_main": {
+        "before": 0.08871414333298262,
+        "after": 0.08873989617841378
+      }
+    }
+  },
+  "approval_matched": [
+    {
+      "approval_rate": 0.5,
+      "n_approved": 3011,
+      "bad_rate__bureau_score": 0.043175024908668216,
+      "bad_rate__baseline_logreg_v1": 0.05181002989040186,
+      "bad_rate__gbm_v1": 0.043175024908668216
+    },
+    {
+      "approval_rate": 0.6,
+      "n_approved": 3613,
+      "bad_rate__bureau_score": 0.05203432050927207,
+      "bad_rate__baseline_logreg_v1": 0.05673955161915306,
+      "bad_rate__gbm_v1": 0.04926653750345973
+    },
+    {
+      "approval_rate": 0.656,
+      "n_approved": 3950,
+      "bad_rate__bureau_score": 0.057974683544303796,
+      "bad_rate__baseline_logreg_v1": 0.05924050632911392,
+      "bad_rate__gbm_v1": 0.052658227848101265
+    },
+    {
+      "approval_rate": 0.7,
+      "n_approved": 4215,
+      "bad_rate__bureau_score": 0.05954922894424674,
+      "bad_rate__baseline_logreg_v1": 0.06215895610913404,
+      "bad_rate__gbm_v1": 0.0571767497034401
+    }
+  ],
+  "empirical_approval_rate": 0.6562448132780083,
+  "psi": {
+    "baseline_logreg_v1": {
+      "score": 0.006072854652787236,
+      "bureau_score": 0.0004508540786215827,
+      "estimated_dti": 0.00168885956959197,
+      "requested_to_income": 0.0009241200498672641,
+      "debt_to_annual_income": 0.0013366197727069863,
+      "monthly_income": 0.0025562792392662933,
+      "existing_debt": 0.0032043829012302263
+    },
+    "gbm_v1": {
+      "score": 0.0014530325210379827,
+      "bureau_score": 0.0004508540786215827,
+      "estimated_dti": 0.00168885956959197,
+      "requested_to_income": 0.0009241200498672641,
+      "debt_to_annual_income": 0.0013366197727069863,
+      "monthly_income": 0.0025562792392662933,
+      "existing_debt": 0.0032043829012302263
+    }
+  },
+  "bands": {
+    "baseline_logreg_v1": [
+      {
+        "band": "A",
+        "pd_low": 0.0,
+        "pd_high": 0.03,
+        "n": 102,
+        "bad_rate": 0.049019607843137254
+      },
+      {
+        "band": "B",
+        "pd_low": 0.03,
+        "pd_high": 0.06,
+        "n": 2891,
+        "bad_rate": 0.05119335869941197
+      },
+      {
+        "band": "C",
+        "pd_low": 0.06,
+        "pd_high": 0.1,
+        "n": 1245,
+        "bad_rate": 0.08835341365461848
+      },
+      {
+        "band": "D",
+        "pd_low": 0.1,
+        "pd_high": 0.18,
+        "n": 1161,
+        "bad_rate": 0.16881998277347116
+      },
+      {
+        "band": "E",
+        "pd_low": 0.18,
+        "pd_high": 1.01,
+        "n": 623,
+        "bad_rate": 0.33547351524879615
+      }
+    ],
+    "gbm_v1": [
+      {
+        "band": "A",
+        "pd_low": 0.0,
+        "pd_high": 0.03,
+        "n": 88,
+        "bad_rate": 0.022727272727272728
+      },
+      {
+        "band": "B",
+        "pd_low": 0.03,
+        "pd_high": 0.06,
+        "n": 2675,
+        "bad_rate": 0.04074766355140187
+      },
+      {
+        "band": "C",
+        "pd_low": 0.06,
+        "pd_high": 0.1,
+        "n": 1379,
+        "bad_rate": 0.08484408992023205
+      },
+      {
+        "band": "D",
+        "pd_low": 0.1,
+        "pd_high": 0.18,
+        "n": 1346,
+        "bad_rate": 0.17979197622585438
+      },
+      {
+        "band": "E",
+        "pd_low": 0.18,
+        "pd_high": 1.01,
+        "n": 534,
+        "bad_rate": 0.3707865168539326
+      }
+    ]
+  },
+  "vintage": [
+    {
+      "vintage_month": "2025-01",
+      "n": 685,
+      "defaults": 74,
+      "default_rate": 0.10802919708029197
+    },
+    {
+      "vintage_month": "2025-02",
+      "n": 761,
+      "defaults": 95,
+      "default_rate": 0.12483574244415244
+    },
+    {
+      "vintage_month": "2025-03",
+      "n": 892,
+      "defaults": 86,
+      "default_rate": 0.09641255605381166
+    },
+    {
+      "vintage_month": "2025-04",
+      "n": 906,
+      "defaults": 93,
+      "default_rate": 0.10264900662251655
+    },
+    {
+      "vintage_month": "2025-05",
+      "n": 938,
+      "defaults": 118,
+      "default_rate": 0.1257995735607676
+    },
+    {
+      "vintage_month": "2025-06",
+      "n": 903,
+      "defaults": 98,
+      "default_rate": 0.10852713178294573
+    },
+    {
+      "vintage_month": "2025-07",
+      "n": 884,
+      "defaults": 99,
+      "default_rate": 0.11199095022624435
+    },
+    {
+      "vintage_month": "2025-08",
+      "n": 53,
+      "defaults": 5,
+      "default_rate": 0.09433962264150944
+    }
+  ],
+  "selection_bias": {
+    "baseline_logreg_v1": {
+      "approved_observable": {
+        "n": 6022,
+        "defaults": 668,
+        "default_rate": 0.11092660245765526,
+        "auc": 0.7172608928575422,
+        "ks": 0.3489097635882512,
+        "brier": 0.09036961779141683,
+        "top_decile_bad_rate": 0.33665008291873966,
+        "auc_ci": [
+          0.695745543180817,
+          0.7391507375558862
+        ],
+        "ks_ci": [
+          0.31239959787738364,
+          0.3895531088774331
+        ]
+      },
+      "through_the_door": {
+        "n": 11253,
+        "defaults": 2043,
+        "default_rate": 0.18155158624366835,
+        "auc": 0.7665991444528948,
+        "ks": 0.4243722506819983,
+        "brier": 0.12252216755724912,
+        "top_decile_bad_rate": 0.5825932504440497
+      }
+    },
+    "gbm_v1": {
+      "approved_observable": {
+        "n": 6022,
+        "defaults": 668,
+        "default_rate": 0.11092660245765526,
+        "auc": 0.7491650990137768,
+        "ks": 0.3902851748874309,
+        "brier": 0.08873989617841378,
+        "top_decile_bad_rate": 0.351575456053068,
+        "auc_ci": [
+          0.7298790536118709,
+          0.7687867010932505
+        ],
+        "ks_ci": [
+          0.3534859101071304,
+          0.4290518138951316
+        ]
+      },
+      "through_the_door": {
+        "n": 11253,
+        "defaults": 2043,
+        "default_rate": 0.18155158624366835,
+        "auc": 0.7976544467669322,
+        "ks": 0.45160674169843484,
+        "brier": 0.11970580514066857,
+        "top_decile_bad_rate": 0.5683836589698046
+      }
+    }
+  },
+  "monotone_check": {
+    "inspected": 223016,
+    "contradictions": 4836,
+    "contradiction_rate": 0.02168454281307171,
+    "by_model": {
+      "baseline_logreg_v1": {
+        "inspected": 118649,
+        "contradictions": 4098,
+        "contradiction_rate": 0.03453884988495478,
+        "examples": [
+          {
+            "feature": "monthly_income",
+            "value": 4184.86,
+            "reference": 3646.18
+          },
+          {
+            "feature": "monthly_income",
+            "value": 3920.49,
+            "reference": 3646.18
+          },
+          {
+            "feature": "debt_to_annual_income",
+            "value": 0.0,
+            "reference": 0.17128299359233573
+          },
+          {
+            "feature": "monthly_income",
+            "value": 3773.19,
+            "reference": 3646.18
+          },
+          {
+            "feature": "monthly_income",
+            "value": 3803.93,
+            "reference": 3646.18
+          }
+        ]
+      },
+      "gbm_v1": {
+        "inspected": 104367,
+        "contradictions": 738,
+        "contradiction_rate": 0.007071200666877461,
+        "examples": [
+          {
+            "feature": "debt_to_annual_income",
+            "value": 0.13565490676026998,
+            "reference": 0.17128299359233573
+          },
+          {
+            "feature": "employment_months",
+            "value": 48.0,
+            "reference": 35.0
+          },
+          {
+            "feature": "bureau_score",
+            "value": 720.0,
+            "reference": 719.0
+          },
+          {
+            "feature": "debt_to_annual_income",
+            "value": 0.13979443351185586,
+            "reference": 0.17128299359233573
+          },
+          {
+            "feature": "bureau_score",
+            "value": 720.0,
+            "reference": 719.0
+          }
+        ]
+      }
+    }
+  },
+  "reliability_oot": {
+    "baseline_logreg_v1": [
+      {
+        "bin": "(-0.000999, 0.0474]",
+        "n": 2954,
+        "observed_rate": 0.05044008124576845,
+        "mean_pd": 0.045790036423444584
+      },
+      {
+        "bin": "(0.0474, 0.0692]",
+        "n": 735,
+        "observed_rate": 0.08979591836734693,
+        "mean_pd": 0.0681928442074522
+      },
+      {
+        "bin": "(0.0692, 0.085]",
+        "n": 548,
+        "observed_rate": 0.08759124087591241,
+        "mean_pd": 0.08448152752035941
+      },
+      {
+        "bin": "(0.085, 0.152]",
+        "n": 663,
+        "observed_rate": 0.1493212669683258,
+        "mean_pd": 0.14319836821957715
+      },
+      {
+        "bin": "(0.152, 0.253]",
+        "n": 776,
+        "observed_rate": 0.2036082474226804,
+        "mean_pd": 0.19763569175728476
+      },
+      {
+        "bin": "(0.253, 0.556]",
+        "n": 346,
+        "observed_rate": 0.4277456647398844,
+        "mean_pd": 0.3450059464986974
+      }
+    ],
+    "gbm_v1": [
+      {
+        "bin": "(-0.000999, 0.0328]",
+        "n": 1090,
+        "observed_rate": 0.022018348623853212,
+        "mean_pd": 0.030172927179651896
+      },
+      {
+        "bin": "(0.0328, 0.0361]",
+        "n": 444,
+        "observed_rate": 0.0472972972972973,
+        "mean_pd": 0.036063918075759184
+      },
+      {
+        "bin": "(0.0361, 0.0469]",
+        "n": 1201,
+        "observed_rate": 0.05412156536219817,
+        "mean_pd": 0.04690431519699812
+      },
+      {
+        "bin": "(0.0469, 0.0753]",
+        "n": 804,
+        "observed_rate": 0.08084577114427861,
+        "mean_pd": 0.07467258416289774
+      },
+      {
+        "bin": "(0.0753, 0.0854]",
+        "n": 603,
+        "observed_rate": 0.087893864013267,
+        "mean_pd": 0.08540925266903915
+      },
+      {
+        "bin": "(0.0854, 0.165]",
+        "n": 1141,
+        "observed_rate": 0.1726555652936021,
+        "mean_pd": 0.1641321793484119
+      },
+      {
+        "bin": "(0.165, 0.179]",
+        "n": 205,
+        "observed_rate": 0.21951219512195122,
+        "mean_pd": 0.17635953574290633
+      },
+      {
+        "bin": "(0.179, 0.625]",
+        "n": 534,
+        "observed_rate": 0.3707865168539326,
+        "mean_pd": 0.34117811034689527
+      }
+    ]
+  }
+}

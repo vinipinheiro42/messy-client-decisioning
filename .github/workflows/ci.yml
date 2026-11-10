@@ -21,6 +21,8 @@ jobs:
         run: make data
       - name: Build bronze and silver
         run: make dbt
+      - name: Train and score models
+        run: make train
       - name: Quality report
         run: make quality
       - name: Lint and unit tests

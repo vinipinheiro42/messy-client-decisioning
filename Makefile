@@ -14,7 +14,7 @@ data:
 	$(PYTHON) scripts/generate_data.py --seed 42
 
 check:
-	$(PYTHON) -m ruff check scripts tests
+	$(PYTHON) -m ruff check scripts tests ml
 	$(PYTHON) -m pytest
 
 bronze:
@@ -36,7 +36,10 @@ quality:
 	$(PYTHON) scripts/quality_report.py
 
 train:
-	@echo "Placeholder: model training and scoring are scheduled for milestone M3."
+	$(PYTHON) -m ml.train
+	@echo "---- Refresh Analytics Engineering gold/metrics with scored applications ----"
+	-cd dbt && ../$(DBT) run --select gold metrics --profiles-dir .
+	-cd dbt && ../$(DBT) test --select gold metrics path:tests/gold --profiles-dir .
 
 api:
 	@echo "Placeholder: scoring API is scheduled for milestone M4."

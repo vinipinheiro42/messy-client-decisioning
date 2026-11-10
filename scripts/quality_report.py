@@ -771,7 +771,7 @@ def render_markdown(payload: dict) -> str:
         _outcome_row("silver (contract rule)", sil_o),
         _outcome_row("ground truth (same rule)", gt_o),
         "",
-                "The loan counts differ because some loans never reach silver (quarantine or",
+        "The loan counts differ because some loans never reach silver (quarantine or",
         "parent cascade). On the same rule and UTC dates, the rates should be close;",
         "a large gap is a cleaning bug, not a definition mismatch.",
         "",
