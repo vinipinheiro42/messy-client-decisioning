@@ -5,7 +5,7 @@
 with pop as (
     select model_version, pd, is_default_12m as y
     from {{ ref('fct_scores') }}
-    where split = 'oot' and is_observable
+    where split = 'oot' and is_observable and pd is not null
 ),
 d as (
     select *, ntile(10) over (partition by model_version order by pd) as pd_decile from pop

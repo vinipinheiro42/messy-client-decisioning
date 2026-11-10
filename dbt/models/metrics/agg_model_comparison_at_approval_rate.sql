@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 -- Grain: 1 row per model_version x target_approval_rate (0.10..0.90 step 0.05). OOT only.
--- Proof of Value: each model approves the same share of OOT applications (top-k by score,
--- ties broken by lower pd then application_id), so models are compared at EQUAL approval rate.
+-- Proof of Value: each policy approves the same share of OOT applications (top-k by score,
+-- ties broken by lower pd then application_id), so they are compared at EQUAL approval rate.
+-- Includes the incumbent 'bureau_score' (higher bureau = lower risk; no calibrated pd,
+-- so expected-loss metrics are NULL; observed metrics are still computed).
 -- observed_default_rate = observed defaults / observed outcomes within the approved set
 -- (reject bias: only approved & booked & matured applications carry outcomes).
 -- Economics use the same formulas as agg_policy_simulation.
@@ -10,7 +12,7 @@ with params as (
 ),
 oot as (
     select *,
-        row_number() over (partition by model_version order by score desc, pd asc, application_id) as rk,
+        row_number() over (partition by model_version order by score desc, pd asc nulls last, application_id) as rk,
         count(*) over (partition by model_version) as n_scored
     from {{ ref('fct_scores') }}
     where split = 'oot'
@@ -29,11 +31,13 @@ select
     count(*) filter (where oot.is_observable and oot.is_default_12m = 1) * 1.0
         / nullif(count(*) filter (where oot.is_observable), 0)                as observed_default_rate,
     avg(oot.pd)                                                               as avg_predicted_pd,
-    round(sum(oot.pd * oot.requested_amount) * max(p.lgd), 2)                 as expected_loss_brl,
-    round(sum((1 - oot.pd) * oot.requested_amount * (oot.term_months + 1) / 24.0) * max(p.net_interest_margin_annual)
+    case when count(oot.pd) = 0 then null
+         else round(sum(oot.pd * oot.requested_amount) * max(p.lgd), 2) end    as expected_loss_brl,
+    case when count(oot.pd) = 0 then null
+         else round(sum((1 - oot.pd) * oot.requested_amount * (oot.term_months + 1) / 24.0) * max(p.net_interest_margin_annual)
           - sum(oot.pd * oot.requested_amount) * max(p.lgd)
           - count(*) * max(p.acquisition_cost_brl)
-          - max(oot.n_scored) * max(p.underwriting_cost_brl), 2)              as expected_net_result_brl,
+          - max(oot.n_scored) * max(p.underwriting_cost_brl), 2) end           as expected_net_result_brl,
     round(coalesce(sum(oot.principal * (oot.loan_term_months + 1) / 24.0) filter (where oot.is_observable and oot.is_default_12m = 0), 0) * max(p.net_interest_margin_annual)
           - coalesce(sum(oot.exposure_at_default) filter (where oot.is_observable and oot.is_default_12m = 1), 0) * max(p.lgd)
           - count(*) filter (where oot.is_observable) * max(p.acquisition_cost_brl), 2) as observed_net_result_brl,

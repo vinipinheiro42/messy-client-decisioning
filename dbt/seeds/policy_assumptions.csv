@@ -1,9 +1,16 @@
-assumption_key,value,unit,is_synthetic,description
-gross_interest_margin_annual,0.22,rate,true,Synthetic annual GROSS interest margin used only in Proof of Value illustrations (average-balance approximation of an amortized loan)
-funding_cost_annual,0.12,rate,true,Synthetic annual funding cost; net margin = gross_interest_margin_annual - funding_cost_annual. Not a market quote. A future version may replace the gross margin with the contract interest_rate_monthly (from stg_loans) minus this funding cost
-lgd,0.65,rate,true,Synthetic loss given default (fraction of exposure) for unsecured personal credit; used as expected_loss = PD x EAD x LGD
-acquisition_cost_brl,180,BRL,true,Synthetic customer acquisition cost per originated loan
-underwriting_cost_brl,25,BRL,true,Synthetic variable cost to underwrite one application
-recovery_lag_months,8,months,true,Synthetic expected recovery lag after default; not used in this version (no discounting)
-discount_rate_annual,0.105,rate,true,Synthetic discount rate for expected-loss illustrations; not a market quote; not used in this version
-default_definition,90_dpd_within_12m,label,true,Default if 90+ days past due within 12 months of disbursement
+assumption_key,model_version,value,unit,is_synthetic,description
+gross_interest_margin_annual,,0.22,rate,true,Synthetic annual GROSS interest margin used only in Proof of Value illustrations (average-balance approximation of an amortized loan)
+funding_cost_annual,,0.12,rate,true,Synthetic annual funding cost; net margin = gross_interest_margin_annual - funding_cost_annual. Not a market quote. A future version may replace the gross margin with the contract interest_rate_monthly (from stg_loans) minus this funding cost
+lgd,,0.65,rate,true,Synthetic loss given default (fraction of exposure) for unsecured personal credit; used as expected_loss = PD x EAD x LGD
+acquisition_cost_brl,,180,BRL,true,Synthetic customer acquisition cost per originated loan
+underwriting_cost_brl,,25,BRL,true,Synthetic variable cost to underwrite one application
+recovery_lag_months,,8,months,true,Synthetic expected recovery lag after default; not used in this version (no discounting)
+discount_rate_annual,,0.105,rate,true,Synthetic discount rate for expected-loss illustrations; not a market quote; not used in this version
+default_definition,,90_dpd_within_12m,label,true,Default if 90+ days past due within 12 months of disbursement
+incumbent_policy,,bureau_score,label,true,Current (incumbent) policy: approve the top X% by bureau_score (higher score = lower risk)
+risk_band_a_pd_upper,baseline_logreg_v1,0.04066985645933014,pd,true,Documented per-model threshold: band A if PD < this edge for baseline_logreg_v1 (approx 0.0407). Source of truth for assignment is predictions_scores.risk_band; the seed is for documentation and validation
+risk_band_b_pd_upper,baseline_logreg_v1,0.07342657342657342,pd,true,Documented per-model threshold: band B if A_upper <= PD < this edge for baseline_logreg_v1 (approx 0.0734)
+risk_band_c_pd_upper,baseline_logreg_v1,0.15254237288135594,pd,true,Documented per-model threshold: band C if B_upper <= PD < this edge for baseline_logreg_v1 (approx 0.1525); band D is the remainder
+risk_band_a_pd_upper,gbm_v1,0.04538087520259319,pd,true,Documented per-model threshold: band A if PD < this edge for gbm_v1 (approx 0.0454). Source of truth for assignment is predictions_scores.risk_band; the seed is for documentation and validation
+risk_band_b_pd_upper,gbm_v1,0.08786610878661087,pd,true,Documented per-model threshold: band B if A_upper <= PD < this edge for gbm_v1 (approx 0.0879)
+risk_band_c_pd_upper,gbm_v1,0.1619718309859155,pd,true,Documented per-model threshold: band C if B_upper <= PD < this edge for gbm_v1 (approx 0.1620); band D is the remainder

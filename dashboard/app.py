@@ -9,7 +9,9 @@ All data is SYNTHETIC (fictional Brazilian personal-credit fintech).
 """
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -22,7 +24,8 @@ FORCED_SCHEMA = os.environ.get("MC_DUCKDB_SCHEMA")
 GOLD_TABLES = [
     "dim_snapshot", "agg_data_quality", "agg_funnel_monthly", "agg_vintage_default",
     "agg_model_performance", "agg_calibration_deciles", "agg_policy_simulation",
-    "agg_model_comparison_at_approval_rate", "fct_loan_outcomes",
+    "agg_model_comparison_at_approval_rate", "agg_risk_band_performance",
+    "fct_loan_outcomes",
 ]
 SYNTHETIC_BANNER = (
     "⚠️ **SYNTHETIC DATA** — every number on this page comes from synthetic data for a "
@@ -82,6 +85,32 @@ def safe_div(n, d):
     if d is None or pd.isna(d) or d == 0:
         return float("nan")
     return n / d
+
+
+
+def find_model_metrics_path() -> Path | None:
+    env = os.environ.get("MC_MODEL_METRICS_PATH")
+    candidates = []
+    if env:
+        candidates.append(Path(env))
+    repo_from_db = Path(DB_PATH).resolve().parent.parent / "docs" / "model_metrics.json"
+    repo_from_app = Path(__file__).resolve().parent.parent / "docs" / "model_metrics.json"
+    candidates.extend([repo_from_db, repo_from_app, Path("docs/model_metrics.json")])
+    for c in candidates:
+        if c.is_file():
+            return c
+    return None
+
+
+@st.cache_data
+def load_published_metrics() -> dict | None:
+    path = find_model_metrics_path()
+    if path is None:
+        return None
+    with path.open() as f:
+        data = json.load(f)
+    data["_path"] = str(path)
+    return data
 
 
 st.title("Messy Client Data → Decisioning")
@@ -174,7 +203,10 @@ if is_empty(perf) and is_empty(cal):
     st.info(SCORES_PENDING)
 else:
     st.caption("Population: scored applications with an observable outcome (approved, booked, matured). "
-               "Headline split = OOT.")
+               "Headline split = OOT. `bureau_score` is the incumbent policy (higher score = lower risk); "
+               "it has no calibrated PD, so Brier is blank. On the published OOT set, logistic leads "
+               "slightly on AUC; paired bootstrap CIs for GBM minus bureau (AUC, KS, and equal-approval "
+               "bad-rate deltas) include 0, so GBM has no demonstrated ranking gain over the bureau.")
     if is_empty(perf):
         st.info(SCORES_PENDING)
     else:
@@ -184,6 +216,43 @@ else:
         st.dataframe(show.style.format({"auc": "{:.3f}", "gini": "{:.3f}", "ks": "{:.3f}", "brier_score": "{:.4f}",
                                         "avg_predicted_pd": "{:.1%}", "observed_default_rate": "{:.1%}"}),
                      use_container_width=True, hide_index=True)
+        published = load_published_metrics()
+        if published and "metrics" in published:
+            rows = []
+            for mv, block in published["metrics"].items():
+                oot = block.get("oot_main") or {}
+                auc_ci = oot.get("auc_ci") or [None, None]
+                ks_ci = oot.get("ks_ci") or [None, None]
+                rows.append({
+                    "model_version": mv,
+                    "n": oot.get("n"),
+                    "defaults": oot.get("defaults"),
+                    "auc": oot.get("auc"),
+                    "auc_ci_low": None if not auc_ci else auc_ci[0],
+                    "auc_ci_high": None if not auc_ci else auc_ci[1],
+                    "ks": oot.get("ks"),
+                    "ks_ci_low": None if not ks_ci else ks_ci[0],
+                    "ks_ci_high": None if not ks_ci else ks_ci[1],
+                    "brier": oot.get("brier"),
+                })
+            pub = pd.DataFrame(rows)
+            st.caption("Published OOT metrics from `docs/model_metrics.json` (same observable OOT population; "
+                       "CIs shown when the JSON includes them).")
+            st.dataframe(pub.style.format({
+                "auc": "{:.3f}", "auc_ci_low": "{:.3f}", "auc_ci_high": "{:.3f}",
+                "ks": "{:.3f}", "ks_ci_low": "{:.3f}", "ks_ci_high": "{:.3f}",
+                "brier": "{:.4f}",
+            }, na_rep="—"), use_container_width=True, hide_index=True)
+            pb = published.get("paired_bootstrap") or {}
+            if pb.get("delta_auc"):
+                d = pb["delta_auc"]
+                ci = d.get("ci") or [None, None]
+                includes0 = ci[0] is not None and ci[1] is not None and ci[0] <= 0 <= ci[1]
+                st.caption(
+                    f"Paired bootstrap Δ AUC (GBM − bureau): mean {d.get('mean'):.4f}, "
+                    f"CI [{ci[0]:.4f}, {ci[1]:.4f}] over {pb.get('n_draws', '—')} draws"
+                    + (", which includes 0 (no demonstrated ranking gain)." if includes0 else ".")
+                )
     if is_empty(cal):
         st.info(SCORES_PENDING)
     else:
@@ -194,6 +263,30 @@ else:
             fig.add_scatter(x=[0, mx], y=[0, mx], mode="lines", name="perfect calibration", line=dict(dash="dash"))
         fig.update_layout(xaxis_tickformat=".0%", yaxis_tickformat=".0%")
         st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------------------------------------------- risk bands
+st.header("4b. Risk bands A–D (OOT, observable)")
+bands = load("agg_risk_band_performance") if "agg_risk_band_performance" in locate_tables() else pd.DataFrame()
+if is_empty(bands):
+    st.info("No risk-band rows yet (need scores with a calibrated PD).")
+else:
+    st.caption("Four model-specific bands (A–D). `risk_band` is taken from `predictions_scores` "
+               "(source of truth). Seed `policy_assumptions` documents the PD edges used to validate "
+               "that assignment (logistic A < 0.0407, B < 0.0734, C < 0.1525; "
+               "GBM A < 0.0454, B < 0.0879, C < 0.1620; D is the remainder in each model). "
+               "The incumbent bureau policy has no PD band.")
+    fig = px.bar(bands.sort_values(["model_version", "band_order"]),
+                 x="risk_band", y="n_observed", color="model_version", barmode="group",
+                 title="OOT observable volume by risk band (synthetic)")
+    st.plotly_chart(fig, use_container_width=True)
+    fig = px.bar(bands.sort_values(["model_version", "band_order"]),
+                 x="risk_band", y="observed_default_rate", color="model_version", barmode="group",
+                 title="Observed default rate by risk band, OOT (synthetic)")
+    fig.update_layout(yaxis_tickformat=".0%")
+    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(bands.sort_values(["model_version", "band_order"]).style.format({
+        "observed_default_rate": "{:.1%}", "avg_predicted_pd": "{:.2%}", "pd_low": "{:.2%}", "pd_high": "{:.2%}",
+    }), use_container_width=True, hide_index=True)
 
 # --------------------------------------------------------------------- policy
 st.header("5. Policy curve: approval × default × net result (OOT)")
@@ -208,14 +301,16 @@ else:
                "proxy × LGD (EAD proxy = requested_amount). Margin is an average-balance approximation "
                "of an amortized loan, net of synthetic funding cost. Assumptions (SYNTHETIC): net annual "
                "margin {:.1%} (= gross {:.1%}"
-               "{}), LGD {:.0%}, acquisition R$ {:.0f} per loan, underwriting R$ {:.0f} per application.".format(
+               "{}), LGD {:.0%}, acquisition R$ {:.0f} per loan, underwriting R$ {:.0f} per application. "
+               "The incumbent `bureau_score` policy is compared in Proof of Value (it has no cutoff grid here).".format(
                    net_m, pol["gross_interest_margin_annual"].iloc[0],
                    (f", funding cost {fund_m:.1%}" if fund_m is not None else ""),
                    pol["lgd"].iloc[0],
                    pol["acquisition_cost_brl"].iloc[0], pol["underwriting_cost_brl"].iloc[0]))
     models = sorted(pol["model_version"].unique())
     cA, cB = st.columns([1, 3])
-    model = cA.selectbox("Model version", models, index=models.index("gbm_v1") if "gbm_v1" in models else 0)
+    default_m = "gbm_v1" if "gbm_v1" in models else models[0]
+    model = cA.selectbox("Model version", models, index=models.index(default_m))
     cuts = sorted(pol["score_cutoff"].unique())
     cutoff = cA.select_slider("Score cutoff", options=cuts, value=cuts[len(cuts) // 2])
     pm = pol[pol["model_version"] == model].sort_values("score_cutoff")
@@ -238,7 +333,7 @@ else:
     cB.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------------------- proof of value
-st.header("6. Proof of Value: challenger vs baseline at the same approval rate (OOT)")
+st.header("6. Proof of Value: challenger vs incumbent at the same approval rate (OOT)")
 pov = load("agg_model_comparison_at_approval_rate")
 if is_empty(pov):
     st.info(SCORES_PENDING)
@@ -246,10 +341,12 @@ else:
     pov = pov.sort_values(["model_version", "target_approval_rate"])
     mv = sorted(pov["model_version"].unique())
     c1, c2, c3 = st.columns(3)
-    challenger = c1.selectbox("Challenger", mv, index=mv.index("gbm_v1") if "gbm_v1" in mv else len(mv) - 1)
+    default_ch = "baseline_logreg_v1" if "baseline_logreg_v1" in mv else ( "gbm_v1" if "gbm_v1" in mv else mv[-1])
+    challenger = c1.selectbox("Challenger", mv, index=mv.index(default_ch))
     others = [m for m in mv if m != challenger] or mv
-    baseline = c2.selectbox("Baseline", others,
-                            index=others.index("baseline_logreg_v1") if "baseline_logreg_v1" in others else 0)
+    default_base = "bureau_score" if "bureau_score" in others else (
+        "baseline_logreg_v1" if "baseline_logreg_v1" in others else others[0])
+    baseline = c2.selectbox("Baseline (incumbent)", others, index=others.index(default_base))
     rates = sorted(pov["target_approval_rate"].unique())
     target = c3.select_slider("Target approval rate", options=rates, value=0.5 if 0.5 in rates else rates[len(rates) // 2],
                               format_func=lambda r: f"{r:.0%}")
@@ -265,10 +362,13 @@ else:
         c3.metric(f"Observed outcomes ({challenger} / {baseline})", f"{int(g.n_observed_outcomes)} / {int(b.n_observed_outcomes)}")
     else:
         st.info("Select two different model versions.")
-    st.caption("Each model approves the top-k OOT applications by score (same k). Expected net result is "
-               "computed with each model's own PD, so it is not an apples-to-apples comparison; the PoV "
-               "headline uses observed outcomes on the covered subset, normalized per observed loan because "
-               "coverage differs between models (reject bias applies).")
+    st.caption("Through-the-door PoV: each policy approves the top-k of **all** OOT-scored applications "
+               "by score (same k; for `bureau_score`, higher bureau = lower risk). Observed default and "
+               "net result are computed on the booked-and-matured subset of those approvals (reject bias). "
+               "Expected net result uses each model's own PD, so it is not defined for the bureau policy. "
+               "This is a different population from the published approval-matched rates below, which use "
+               "only observable OOT loans. GBM has no demonstrated ranking gain over the bureau on the "
+               "published paired bootstrap (delta CIs include 0); the dashboard does not claim otherwise.")
     pov_sel = pov[pov["model_version"].isin([challenger, baseline])]
     fig = px.line(pov_sel, x="target_approval_rate", y="observed_default_rate", color="model_version", markers=True,
                   title="Observed default rate at equal approval rate (synthetic)")
@@ -280,6 +380,54 @@ else:
                     .update_layout(xaxis_tickformat=".0%"), use_container_width=True)
     st.dataframe(pov[(pov["target_approval_rate"] == target) & pov["model_version"].isin([challenger, baseline])],
                  use_container_width=True, hide_index=True)
+
+    published = load_published_metrics()
+    matched = (published or {}).get("approval_matched") or []
+    if matched:
+        st.subheader("Published approval-matched bad rates (observable OOT only)")
+        n_oot = None
+        metrics = (published or {}).get("metrics") or {}
+        for block in metrics.values():
+            if isinstance(block, dict) and (block.get("oot_main") or {}).get("n"):
+                n_oot = block["oot_main"]["n"]
+                break
+        st.caption(
+            "These figures come from `docs/model_metrics.json` and are **not** the through-the-door "
+            f"PoV above. Population: observable OOT loans only"
+            + (f" (n = {int(n_oot):,})" if n_oot else "")
+            + ". Each policy approves the top X% of that observable set. "
+            "Individual bad-rate CIs are shown only when the JSON includes them; "
+            "paired bootstrap intervals below are for Δ (GBM − bureau)."
+        )
+        rows = []
+        pb_bad = ((published or {}).get("paired_bootstrap") or {}).get("delta_bad_rate") or {}
+        for row in matched:
+            rate = row.get("approval_rate")
+            key = str(rate)
+            # JSON keys may be "0.5" or "0.50"
+            delta = pb_bad.get(key) or pb_bad.get(f"{float(rate):.1f}") or pb_bad.get(f"{float(rate):g}") or {}
+            ci = delta.get("ci") or [None, None]
+            rows.append({
+                "approval_rate": rate,
+                "n_approved": row.get("n_approved"),
+                "bad_rate_bureau_score": row.get("bad_rate__bureau_score"),
+                "bad_rate_baseline_logreg_v1": row.get("bad_rate__baseline_logreg_v1"),
+                "bad_rate_gbm_v1": row.get("bad_rate__gbm_v1"),
+                "delta_gbm_minus_bureau_mean": delta.get("mean"),
+                "delta_ci_low": None if not ci else ci[0],
+                "delta_ci_high": None if not ci else ci[1],
+                "bureau_ties_at_cutoff": row.get("ties_at_cutoff__bureau_score"),
+            })
+        pub_df = pd.DataFrame(rows)
+        st.dataframe(pub_df.style.format({
+            "approval_rate": "{:.1%}",
+            "bad_rate_bureau_score": "{:.2%}",
+            "bad_rate_baseline_logreg_v1": "{:.2%}",
+            "bad_rate_gbm_v1": "{:.2%}",
+            "delta_gbm_minus_bureau_mean": "{:.4%}",
+            "delta_ci_low": "{:.4%}",
+            "delta_ci_high": "{:.4%}",
+        }, na_rep="—"), use_container_width=True, hide_index=True)
 
 st.divider()
 st.warning(SYNTHETIC_BANNER)

@@ -1,11 +1,13 @@
 {{ config(materialized='table') }}
 -- One row: SYNTHETIC policy assumptions pivoted from seed policy_assumptions
--- (columns assumption_key, value, unit, is_synthetic, description; value may be text).
--- net_interest_margin_annual = gross_interest_margin_annual - funding_cost_annual.
+-- (columns assumption_key, model_version, value, unit, is_synthetic, description).
+-- Per-model risk-band thresholds live in the same seed but are not pivoted here
+-- (see dim_risk_bands). net_interest_margin_annual = gross - funding cost.
 -- Not used here: recovery_lag_months, discount_rate_annual (no discounting in this version).
 with s as (
     select assumption_key, try_cast(value as double) as v
     from {{ ref('policy_assumptions') }}
+    where coalesce(model_version, '') = ''
 )
 select
     max(v) filter (where assumption_key = 'gross_interest_margin_annual') as gross_interest_margin_annual,

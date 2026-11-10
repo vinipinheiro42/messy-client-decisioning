@@ -83,8 +83,25 @@ models:
       - name: is_observable
         data_tests: [not_null]
 
+  - name: dim_risk_bands
+    description: "One row per model_version x risk band A-D. Documented per-model PD thresholds from seed policy_assumptions. Not used to assign fct_scores.risk_band (that comes from predictions_scores)."
+    columns:
+      - name: band_key
+        data_tests: [unique, not_null]
+      - name: model_version
+        data_tests: [not_null]
+      - name: risk_band
+        data_tests:
+          - not_null
+          - accepted_values:
+                values: ['A', 'B', 'C', 'D']
+      - name: pd_low
+        data_tests: [not_null]
+      - name: pd_high
+        data_tests: [not_null]
+
   - name: fct_scores
-    description: "Grain: 1 row per application_id x model_version, with historical decision and observed outcome."
+    description: "Grain: 1 row per application_id x model_version, including ML scores and the incumbent bureau_score policy. risk_band for ML rows is read from predictions_scores (source of truth). ranking_key is pd (ML) or -bureau_score (incumbent)."
     columns:
       - name: score_key
         description: "application_id|model_version (surrogate of the composite PK)."
@@ -99,6 +116,14 @@ models:
         data_tests:
           - accepted_values:
                 values: ['train', 'validation', 'oot']
+      - name: risk_band
+        data_tests:
+          - accepted_values:
+                values: ['A', 'B', 'C', 'D']
+      - name: is_pd_model
+        data_tests: [not_null]
+      - name: ranking_key
+        data_tests: [not_null]
 
   - name: agg_policy_simulation
     description: "Grain: model_version x score_cutoff (300..900 step 10), OOT only. Uses SYNTHETIC policy assumptions."

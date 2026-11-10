@@ -42,3 +42,13 @@ models:
     columns:
       - name: target_approval_rate
         data_tests: [not_null]
+  - name: agg_risk_band_performance
+    description: "Grain: model_version x risk_band (A-D), OOT observable only. Observed default rate by PD band. risk_band comes from predictions_scores; seed thresholds are documentation only."
+    columns:
+      - name: risk_band
+        data_tests:
+          - not_null
+          - accepted_values:
+                values: ['A', 'B', 'C', 'D']
+      - name: model_version
+        data_tests: [not_null]

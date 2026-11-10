@@ -25,7 +25,7 @@ with params as (
     select * from {{ ref('dim_policy_assumptions') }}
 ),
 oot as (
-    select * from {{ ref('fct_scores') }} where split = 'oot'
+    select * from {{ ref('fct_scores') }} where split = 'oot' and is_pd_model
 ),
 grid as (
     select cast(c as integer) as score_cutoff from range(300, 901, 10) t(c)

@@ -36,16 +36,18 @@ is declared by Data Engineering in `dbt/models/_sources.yml` (schema `ml`).
 |---|---|---|---|
 | `dim_snapshot` | gold | 1 row | Observation cutoff `as_of_date`. Priority: `var('as_of_date')` → contract global cutoff `2026-10-31`. Per-batch `days_past_due` is not used to infer the cutoff. |
 | `dim_policy_assumptions` | gold | 1 row | Synthetic assumptions pivoted from seed `policy_assumptions` (`assumption_key`, `value`), including LGD and funding cost. `net_interest_margin_annual` = gross margin − funding cost. |
+| `dim_risk_bands` | gold | 1 row per `model_version ×` band A–D | Documented per-model PD edges from seed `policy_assumptions` (logistic A < 0.0407, B < 0.0734, C < 0.1525; GBM A < 0.0454, B < 0.0879, C < 0.1620; D = remainder). Not used to assign scores. |
 | `dim_applicant` | gold | `applicant_id` | `age_band` (age at first application), `income_band` (monthly income, BRL), `has_missing_existing_debt` (rollup of the application-grain flag). `cpf` / `full_name` are not exposed. |
 | `fct_applications` | gold | `application_id` | Decision flags, `has_loan`, `hours_to_decision`, `income_commitment_ratio`, `debt_to_annual_income` (NULL when `existing_debt` is NULL), `existing_debt_is_missing`. |
 | `fct_loan_outcomes` | gold | `loan_id` | 12m default label, observability, EAD, installments paid/late/partial, amounts paid. |
-| `fct_scores` | gold | `application_id × model_version` | Score + historical decision + observed outcome. `score_key` = `application_id|model_version`. |
+| `fct_scores` | gold | `application_id × model_version` | ML scores plus the incumbent `bureau_score` policy (`ranking_key = −bureau_score`, higher bureau = lower risk). `risk_band` is read from `predictions_scores` (source of truth). |
 | `agg_policy_simulation` | gold | `model_version × score_cutoff` (300–900, step 10) | OOT only. Approval, observed default, expected/observed economics. |
 | `agg_funnel_monthly` | metrics | `application_month` | Applications → approved → booked. |
 | `agg_vintage_default` | metrics | `vintage_month` (disbursement month) | 12m default rate on observable loans. |
 | `agg_model_performance` | metrics | `model_version × split` | AUC, Gini, KS, Brier. Headline = OOT. |
 | `agg_calibration_deciles` | metrics | `model_version × pd_decile` | OOT only. Mean predicted PD vs observed default. |
-| `agg_model_comparison_at_approval_rate` | metrics | `model_version × target_approval_rate` (10%–90%, step 5) | OOT only. Proof of Value at equal approval rate. |
+| `agg_model_comparison_at_approval_rate` | metrics | `model_version × target_approval_rate` (10%–90%, step 5) | OOT only. Proof of Value at equal approval rate, including `bureau_score` as the current policy. |
+| `agg_risk_band_performance` | metrics | `model_version × risk_band` (A–D) | OOT observable only. Volume and observed default rate per band (`risk_band` from the score source). |
 | `agg_data_quality` | metrics | `source_entity × batch_id × rule_failed` | `check_type` is `quarantine` or `completeness`. Completeness includes the missing-`existing_debt` rate (`rule_failed = existing_debt_missing`). |
 
 ## 3. Default definition (shared with the ML training label)
@@ -115,7 +117,9 @@ Policy rule: **approve when `score >= cutoff`**. Evaluated on the **OOT split on
 validation scores never inflate the result.
 
 Assumptions live in `dbt/seeds/policy_assumptions.csv` (owned by Analytics Engineering). All of them
-are **synthetic** and clearly labelled as such in the seed. This layer uses:
+are **synthetic** and clearly labelled as such in the seed. The same seed also documents the
+**per-model** A–D risk-band PD edges (`risk_band_*_pd_upper` plus `model_version`) for validation
+only — `fct_scores.risk_band` is read from `predictions_scores`. This layer uses the economic keys:
 
 | assumption_key | value | how it is used |
 |---|---|---|
@@ -144,10 +148,17 @@ are not used yet, because there is no discounting in this version.
   `observed_net = Σ principal_good·net_margin·(term+1)/24 − Σ EAD_default·LGD − n_observed·acq_cost`, and
   `observed_net_result_per_loan_brl` = the same per observed loan. Use the per-loan value when the
   models have different coverage.
-* **Proof of Value** (`agg_model_comparison_at_approval_rate`): each model approves the **same number**
-  of OOT applications (top-k by score, ties broken by lower pd, then `application_id`). Models are then
-  compared on observed default rate and observed net per loan. The dashboard lets you pick any
-  challenger/baseline pair (defaults: `gbm_v1` vs `baseline_logreg_v1`).
+* **Proof of Value** (`agg_model_comparison_at_approval_rate`): each policy approves the **same number**
+  of through-the-door OOT applications (top-k by score, ties broken by lower pd, then `application_id`).
+  This includes the incumbent `bureau_score` policy (higher bureau = lower risk; no calibrated PD, so
+  expected-loss figures are null). Policies are compared on observed default rate and observed net per
+  loan on the booked-and-matured subset (reject bias). The dashboard also shows the published
+  approval-matched bad rates from `docs/model_metrics.json`, clearly labelled as the **observable OOT**
+  population (a different, smaller set than the through-the-door PoV). Evaluation of performance
+  metrics (AUC/KS/Brier) uses only observable OOT outcomes; the `split = 'oot'` label in
+  `predictions_scores` also covers declined and immature applications, which enter the through-the-door
+  policy comparison but not the performance denominator. The published paired bootstrap for GBM minus
+  bureau has CIs that include 0; this layer does not claim that GBM outranks the bureau.
 
 ### Fixture run results (synthetic fixture data — illustrative only)
 
@@ -216,7 +227,8 @@ Tests: generic tests (unique, not_null, relationships, accepted_values) in `_gol
 plus singular reconciliation tests in `dbt/tests/gold/`: principal silver = gold, no row
 multiplication, immature loans excluded from default denominators, default only within the 12m
 window, observed/matured outcomes respect `disbursed_at + 12 months + 90 days <= 2026-10-31`
-(FDDS R1), rates in [0, 1], monotonic approval rate vs cutoff, and outcomes only for booked applications.
+(FDDS R1), rates in [0, 1], monotonic approval rate vs cutoff, outcomes only for booked applications,
+and seed per-model A–D thresholds reproducing `predictions_scores.risk_band` exactly.
 None of the tests hardcode fixture counts, rates, or other sample-specific numbers — they are
 structural / relational, so they remain valid when the M2 generator changes first-miss timing
 and the share of immature loans, and when `existing_debt` starts arriving as NULL. A singular
