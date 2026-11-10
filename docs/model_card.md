@@ -53,9 +53,10 @@ Brier scores below are shown before and after this step.
   with PD clipped to `(1e-12, 1-1e-12)` before the map and the
   resulting score clipped to 300–900.
 - Bands are cut on calibrated PD, separately for each model,
-  using that model's OOT approved-and-observable PD quintiles,
-  merged if needed so each band holds at least 5% of that
-  population. `baseline_logreg_v1`: A 0.0000≤PD<0.0407, B 0.0407≤PD<0.0734, C 0.0734≤PD<0.1525, D PD≥0.1525; `gbm_v1`: A 0.0000≤PD<0.0454, B 0.0454≤PD<0.0879, C 0.0879≤PD<0.1620, D PD≥0.1620.
+  starting from that model's OOT approved-and-observable PD quintiles,
+  then merged so each band holds at least 5% of that population.
+  Isotonic plateaus currently collapse the five starting cuts to
+  four bands (A–D) on both models. `baseline_logreg_v1`: A 0.0000≤PD<0.0407, B 0.0407≤PD<0.0734, C 0.0734≤PD<0.1525, D PD≥0.1525; `gbm_v1`: A 0.0000≤PD<0.0454, B 0.0454≤PD<0.0879, C 0.0879≤PD<0.1620, D PD≥0.1620.
 
 ## Feature directions
 
@@ -247,7 +248,7 @@ observed default rate. Plot: `docs/img/reliability_oot.png`.
 
 Tail calibration: `baseline_logreg_v1` top bin observed 38.57% vs mean PD 32.59%; `gbm_v1` top bin observed 35.33% vs mean PD 31.77%. Because expected loss in a
 later Proof of Value is PD × EAD × LGD, under-prediction in
-the upper tail (band E) undervalues the loss avoided by
+the upper tail (band D, the worst remaining band) undervalues the loss avoided by
 declining those loans.
 
 ### Default rate by vintage (OOT, main, disbursement month)

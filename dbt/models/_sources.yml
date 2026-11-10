@@ -25,7 +25,11 @@ sources:
           - name: score
             description: Integer 300-900, higher is better (lower PD)
           - name: risk_band
-            description: Discrete band A-E derived from the score
+            description: >
+              Discrete band A-D cut on calibrated PD, using model-specific
+              thresholds. Training starts from PD quintiles and merges cuts
+              so each band holds at least about 5% of OOT approved loans;
+              isotonic plateaus currently collapse this to four bands.
           - name: reason_codes
             description: JSON list of the top-3 SHAP reason codes
           - name: split

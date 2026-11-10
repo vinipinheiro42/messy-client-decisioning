@@ -106,7 +106,7 @@ Table: `predictions_scores`
 | `model_version` | text | Immutable version string: `baseline_logreg_v1` or `gbm_v1` |
 | `pd` | float, 0–1 | Calibrated probability of default (90+ DPD in 12 months) |
 | `score` | int, 300–900 | Higher is better (lower PD) |
-| `risk_band` | text, A–E | Band derived from the score |
+| `risk_band` | text, A–D | Model-specific band cut on calibrated PD (not on the score). Training starts from PD quintiles and merges thin or non-unique cuts; current models collapse to four bands. |
 | `reason_codes` | JSON | Top-3 SHAP reason codes |
 | `split` | text | `train`, `validation`, or `oot` |
 | `scored_at` | timestamp UTC | When the score was produced |

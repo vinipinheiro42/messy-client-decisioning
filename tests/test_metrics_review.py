@@ -50,7 +50,14 @@ def test_ties_at_cutoff_and_bureau_average() -> None:
 def test_choose_band_edges_min_share() -> None:
     rng = np.random.default_rng(0)
     pd_values = rng.beta(2, 8, size=2000)
-    edges = choose_band_edges(pd_values, n_bands=5, min_share=0.05)
+    # Continuous PDs can keep all five starting cuts; pass five labels
+    # explicitly. Production models do not: see the plateau test below.
+    edges = choose_band_edges(
+        pd_values,
+        n_bands=5,
+        min_share=0.05,
+        names=("A", "B", "C", "D", "E"),
+    )
     assert len(edges) == 5
     assert edges[0][0] == "A" and edges[-1][0] == "E"
     assert edges[0][1] == 0.0 and edges[-1][2] == 1.01
@@ -63,6 +70,17 @@ def test_choose_band_edges_min_share() -> None:
         else:
             shares.append(np.mean((pd_values >= lo) & (pd_values < hi)))
     assert min(shares) >= 0.05 - 1e-12
+
+
+def test_choose_band_edges_collapses_plateaus_to_four() -> None:
+    # Four isotonic-style PD plateaus: quintile cuts are not unique, so
+    # the default path must collapse to A–D, matching production models.
+    pd_values = np.repeat([0.04, 0.07, 0.12, 0.28], 500)
+    edges = choose_band_edges(pd_values)
+    assert [row[0] for row in edges] == ["A", "B", "C", "D"]
+    assert edges[0][1] == 0.0 and edges[-1][2] == 1.01
+    for i in range(1, 4):
+        assert edges[i][1] == edges[i - 1][2]
 
 
 def test_gbm_reason_requires_risky_side_and_delta() -> None:

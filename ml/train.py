@@ -545,9 +545,10 @@ def render_model_card(payload: dict) -> str:
             "  with PD clipped to `(1e-12, 1-1e-12)` before the map and the",
             "  resulting score clipped to 300–900.",
             "- Bands are cut on calibrated PD, separately for each model,",
-            "  using that model's OOT approved-and-observable PD quintiles,",
-            "  merged if needed so each band holds at least 5% of that",
-            f"  population. {band_edge_text}.",
+            "  starting from that model's OOT approved-and-observable PD quintiles,",
+            "  then merged so each band holds at least 5% of that population.",
+            "  Isotonic plateaus currently collapse the five starting cuts to",
+            f"  four bands (A–D) on both models. {band_edge_text}.",
             "",
             "## Feature directions",
             "",
@@ -678,7 +679,7 @@ def render_model_card(payload: dict) -> str:
             "",
             f"Tail calibration: {tail_text}. Because expected loss in a",
             "later Proof of Value is PD × EAD × LGD, under-prediction in",
-            "the upper tail (band E) undervalues the loss avoided by",
+            "the upper tail (band D, the worst remaining band) undervalues the loss avoided by",
             "declining those loans.",
             "",
             "### Default rate by vintage (OOT, main, disbursement month)",
@@ -877,8 +878,10 @@ def run(warehouse: Path | str = DEFAULT_WAREHOUSE) -> dict:
         mono_check["contradiction_rate"] = mono_check["contradictions"] / inspected
 
     oot_mask = frame["has_label"] & (frame["fit_role"] == "oot")
-    # Model-specific quintiles: shared PD cuts left the logistic model with
-    # empty bands because of isotonic plateaus.
+    # Start from model-specific quintiles, then merge. Shared PD cuts left
+    # the logistic model with empty bands because of isotonic plateaus;
+    # those plateaus also collapse the five starting cuts to four bands
+    # (A–D) on both current models.
     band_edges_by_model = {
         model: choose_band_edges(
             pd_all[model][oot_mask.to_numpy()],

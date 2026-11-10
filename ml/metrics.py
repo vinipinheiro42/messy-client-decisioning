@@ -355,9 +355,20 @@ def choose_band_edges(
     pd_values,
     n_bands: int = 5,
     min_share: float = 0.05,
-    names: tuple[str, ...] = ("A", "B", "C", "D", "E"),
+    names: tuple[str, ...] = ("A", "B", "C", "D"),
 ) -> tuple[tuple[str, float, float], ...]:
-    """PD edges from empirical quantiles, guaranteeing a minimum share per band."""
+    """Cut model-specific PD bands, starting from quantiles then merging.
+
+    Training requests ``n_bands=5`` (quintiles of calibrated PD). Adjacent
+    cuts are then dropped when they are non-unique — isotonic calibration
+    often places many loans on the same PD plateau — or when a band would
+    hold less than ``min_share`` of the population (default 5%). On the
+    current synthetic models that collapse yields **four bands, A–D**,
+    which is what artifacts, the API, and the model card use. The
+    ``names`` default is therefore A–D. If a future run keeps more unique
+    cuts than ``names`` provides, pass a longer tuple; otherwise leftover
+    bands are labelled B0, B1, ….
+    """
     pd_arr = np.asarray(pd_values, dtype=float)
     pd_arr = pd_arr[np.isfinite(pd_arr)]
     if len(pd_arr) == 0:

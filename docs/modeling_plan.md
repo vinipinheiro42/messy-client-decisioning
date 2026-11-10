@@ -14,7 +14,7 @@ share a single source of truth.
 
 Predict the 12-month default label `is_default_12m` (also called
 `is_default_90dpd_12m`) at application time, for use as a calibrated PD, a
-300–900 score, an A–E risk band, and top-3 adverse-action style reason codes.
+300–900 score, an A–D risk band, and top-3 adverse-action style reason codes.
 
 ## Label
 
@@ -163,12 +163,15 @@ Higher score is better (lower PD).
 - `score = round(offset - factor * ln(PD / (1 - PD)))`, clipped to **300–900**.
 
 Risk bands are cut on **calibrated PD**, not on the score, and are
-**model-specific**. For each model the cut points are the quintiles of
-its calibrated PD on the OOT approved-and-observable population, merged
-if needed so that each band holds at least about 5% of that population.
-Shared PD cuts are not used, because isotonic plateaus can leave one
-model with an empty band. Exact thresholds, counts, and bad rates are
-reported in the model card after each training run.
+**model-specific**. For each model the cut points start as the quintiles of
+its calibrated PD on the OOT approved-and-observable population, then
+adjacent cuts are merged if a band would hold less than about 5% of
+that population or if isotonic-calibrated PD plateaus make a quantile
+cut non-unique. On the current models that collapse yields **four
+bands, A–D**, not five. Shared PD cuts are not used, because those
+plateaus can leave one model with an empty band. Exact thresholds,
+counts, and bad rates are reported in the model card after each
+training run.
 
 ## Reason codes
 

@@ -23,14 +23,16 @@ ANCHOR_ODDS = 50.0  # good:bad at the anchor; PD = 1 / (1 + 50) ≈ 0.019608
 SCORE_MIN = 300
 SCORE_MAX = 900
 
-# Default risk-band edges (overwritten at train time from GBM PD quintiles
-# so that each band holds at least about 5% of OOT approved loans).
+# Fallback risk-band edges for gbm_v1, used only when a caller of
+# pd_to_band does not pass the model-specific cuts stored in artifacts.
+# Training starts from PD quintiles and merges thin or non-unique cuts
+# (BAND_MIN_SHARE); isotonic plateaus currently collapse this to four
+# bands, A–D. These numbers match the trained gbm_v1 edges.
 BAND_EDGES = (
-    ("A", 0.00, 0.03),
-    ("B", 0.03, 0.06),
-    ("C", 0.06, 0.10),
-    ("D", 0.10, 0.18),
-    ("E", 0.18, 1.01),
+    ("A", 0.00, 0.04538087520259319),
+    ("B", 0.04538087520259319, 0.08786610878661087),
+    ("C", 0.08786610878661087, 0.1619718309859155),
+    ("D", 0.1619718309859155, 1.01),
 )
 BAND_MIN_SHARE = 0.05
 

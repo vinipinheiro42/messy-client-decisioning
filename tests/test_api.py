@@ -81,7 +81,7 @@ def test_valid_score_request(client: TestClient) -> None:
     assert body["model_version"] == MODEL_GBM
     assert 0.0 < body["pd"] < 1.0
     assert 300 <= body["score"] <= 900
-    assert body["risk_band"] in list("ABCDE")
+    assert body["risk_band"] in list("ABCD")
     assert isinstance(body["reason_codes"], list)
     assert len(body["reason_codes"]) <= 3
     for item in body["reason_codes"]:
