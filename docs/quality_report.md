@@ -141,16 +141,23 @@ snapshot extract.
 - parent loan also missing (future schedule and cascade): 2001
 - Present in raw but quarantined as `orphan_fk` because the parent loan was rejected: 18822
 - Parent loan quarantined, all missing installments: 20823
-- Present in raw with a parent loan in silver, but not kept in silver (quarantined as inconsistent_payment or another row rule): 8932
+- Present in raw with a parent loan in silver, but not kept in silver: 8932
+- `inconsistent_payment` quarantine rows (every raw version that failed the paid_at / amount_paid rule): 9340
+- Unique installment keys in that quarantine: 9276 (64 keys have two failed versions)
+- Of those unique keys, parent loan is in silver (these are the 8932 rows in the 'present in raw with a parent in silver' count above): 8932
+- Of those unique keys, parent loan was also quarantined (counted under cascade, not in the 8,932): 344
+
+The previously quoted figure of 8,932 was the coverage remainder (ground-truth installment keys that are in bronze, whose parent loan is in silver, but that never reached `stg_installments`). That count equals the unique `inconsistent_payment` keys with a surviving parent. It is not the size of the quarantine itself. The quarantine holds **9,340 rows** (9,276 unique installments): 64 keys appear twice, none of them kept a clean earlier version in silver, and 344 also lost their parent loan so they are already counted in the cascade line rather than in the 8,932.
 
 In plain words: most of the gap versus the full ground-truth schedule is
 **future installments the client has not yet exported** (due after
 2026-10-31). A further share is **cascade from quarantined parents**: if an
 applicant, application, or loan fails a silver rule, child installments are
 quarantined as orphans. A smaller share is **inconsistent_payment**: a raw
-row with `paid_at` filled and `amount_paid` missing is quarantined so a
-previous clean version can survive; if none exists, the installment is absent.
-Valid, already-exported, consistent installments are not dropped silently.
+row with `paid_at` filled and `amount_paid` missing or zero is quarantined.
+In this warehouse no earlier clean version of those keys survived, so the
+installment is absent from silver. Valid, already-exported, consistent
+installments are not dropped silently.
 
 ## Realised default rate (silver vs ground truth)
 

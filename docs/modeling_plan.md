@@ -67,14 +67,22 @@ Only information that would have been known at `applied_at` is used.
   missing it contributes 0 to the ratio and `existing_debt_is_missing` is
   the flag.
 
-**History, strictly before `applied_at`:**
+**History, strictly before `applied_at`, with a fixed 12-month lookback:**
 
-- `prior_application_count`
-- `prior_decline_count`
-- `prior_observable_default_count`: prior originated loans of the same
-  applicant whose outcome was already observable at this `applied_at`
-  (`observable_from_date <= applied_at` as a date). Outcomes that were not
-  yet observable are left out.
+- `prior_application_count`: prior applications of the same applicant with
+  `applied_at` in the 12 months before this application.
+- `prior_decline_count`: the same window, restricted to declines.
+- `prior_observable_default_count` is **not used**. A lifetime count of
+  already-observable prior defaults is non-zero in ~0.08% of train vs
+  ~4.5% of OOT (history accumulates; value-bin PSI is material, decile
+  PSI hides it) and the logistic coefficient had the wrong sign. A
+  12-month lookback cannot contain a completed 12m+90d outcome, so the
+  feature would be structurally zero under the same window. It remains
+  in the PSI table as a diagnostic lifetime series only.
+
+OOT AUC before this change (lifetime history, feature included) was
+0.7208 (logreg) and 0.7492 (GBM). The model card reports the AUC after
+retraining.
 
 **Forbidden (leakage):** `principal`, `interest_rate_monthly`,
 `installment_amount`, `decision`, `decided_at`, `disbursed_at`, any
@@ -95,7 +103,6 @@ recomputes history windows.
 | `estimated_dti` | up | +1 |
 | `dependents` | up | +1 |
 | `prior_decline_count` | up | +1 |
-| `prior_observable_default_count` | up | +1 |
 | `age_at_applied_at` | U-shaped (no hard constraint) | none |
 | `requested_amount`, `term_months`, counts, flags, categoricals | mixed or absorbed in the category | none |
 
@@ -140,8 +147,10 @@ calibration 2,616 (10.05%), OOT 6,022 (11.09%).
 **Calibration.** Isotonic regression of the raw model score onto the
 label, fitted **only** on the calibration slice. If a model used the tune
 slice for early stopping, that slice is not reused for calibration. OOT
-is not used. Calibrated PDs are clipped to `(1e-6, 1 - 1e-6)` before
-scoring.
+is not used. The isotonic mapping itself is bounded to
+`(1e-6, 1 - 1e-6)`. Immediately before the PDO score map, PD is
+clipped to `(1e-12, 1 - 1e-12)` so that a PD of 0 or 1 reaches the
+300–900 score floor and cap.
 
 ## Score mapping (PDO) and risk bands
 
@@ -153,17 +162,13 @@ Higher score is better (lower PD).
 - `offset = 600 - factor * ln(50)`
 - `score = round(offset - factor * ln(PD / (1 - PD)))`, clipped to **300–900**.
 
-Risk bands are cut on **calibrated PD**, not on the score:
-
-| Band | PD threshold |
-|------|----------------|
-| A | PD < 0.03 |
-| B | 0.03 ≤ PD < 0.06 |
-| C | 0.06 ≤ PD < 0.10 |
-| D | 0.10 ≤ PD < 0.18 |
-| E | PD ≥ 0.18 |
-
-The model card reports each band’s count and bad rate on the main OOT set.
+Risk bands are cut on **calibrated PD**, not on the score, and are
+**model-specific**. For each model the cut points are the quintiles of
+its calibrated PD on the OOT approved-and-observable population, merged
+if needed so that each band holds at least about 5% of that population.
+Shared PD cuts are not used, because isotonic plateaus can leave one
+model with an empty band. Exact thresholds, counts, and bad rates are
+reported in the model card after each training run.
 
 ## Reason codes
 
@@ -171,10 +176,19 @@ Adverse-action style: only contributions that **increase** PD, top 3, as a
 JSON list of `{code, text, contribution}`.
 
 - **GBM:** SHAP values on the **pre-calibration margin** (raw LightGBM
-  log-odds). SHAP is not computed on the isotonic PD.
+  log-odds). SHAP is not computed on the isotonic PD. A reason is
+  emitted only when SHAP > 0 *and* the raw value sits on the risky
+  side of the train-set median by at least a documented minimum delta
+  (for example 10 bureau points, 200 BRL of monthly income).
 - **Logistic regression:** `coef × (x − reference)` on the standardised /
   dummy design matrix, with train-set reference (means of 0 after
   standardisation; dummy reference is the omitted or zero level).
+  `requested_to_income` and `debt_to_annual_income` are dropped from
+  the logistic model (they remain in the GBM) because they are
+  nearly collinear with `monthly_income` and flipped its coefficient
+  sign. Any remaining feature whose fitted sign conflicts with the
+  expected direction is excluded from logistic reason codes and
+  listed in the model card.
 
 ## Metrics
 
@@ -190,11 +204,20 @@ Reported per model and, where a label exists, per split:
   slice and OOT).
 - **Bootstrap 95% CIs** for AUC and KS on OOT, 1,000 resamples, seed 42,
   on the main (approved, observable) population.
-- **PSI** (train vs OOT) for the calibrated score and for the top features.
+- **PSI** (train vs OOT) for the calibrated score, the top continuous features (decile bins), and every `prior_*` series (value bins: 0, 1, …, 5+).
 - **Default rate by vintage** (disbursement month) on the main population.
 - Approval-rate-matched bad rates comparing bureau score, `baseline_logreg_v1`,
   and `gbm_v1` at 50%, 60%, the empirical historical approval rate, and 70%.
-- Selection-bias comparison of the two populations above.
+  Fitted models are ranked on the pre-calibration margin (no isotonic
+  plateau ties). The bureau score uses a 20-seed random tie-break
+  average. The number of ties at each cutoff is reported, as is the
+  swap set (who changes decision between GBM and bureau, and the bad
+  rate of each side).
+- Paired bootstrap (GBM minus bureau) on the same 1,000 OOT resamples
+  for ΔAUC, ΔKS, and Δbad rate at each matched approval rate.
+- Selection-bias comparison of the two populations above. A higher
+  through-the-door AUC is a selection-bias effect (a broader, more
+  separable population), not evidence that the model itself improved.
 
 Metrics are logged to a local MLflow file store at `ml/mlruns` (gitignored).
 

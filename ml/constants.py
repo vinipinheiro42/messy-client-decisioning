@@ -23,7 +23,8 @@ ANCHOR_ODDS = 50.0  # good:bad at the anchor; PD = 1 / (1 + 50) ≈ 0.019608
 SCORE_MIN = 300
 SCORE_MAX = 900
 
-# Risk bands cut on calibrated PD.
+# Default risk-band edges (overwritten at train time from GBM PD quintiles
+# so that each band holds at least about 5% of OOT approved loans).
 BAND_EDGES = (
     ("A", 0.00, 0.03),
     ("B", 0.03, 0.06),
@@ -31,6 +32,43 @@ BAND_EDGES = (
     ("D", 0.10, 0.18),
     ("E", 0.18, 1.01),
 )
+BAND_MIN_SHARE = 0.05
+
+# Logistic regression drops these two ratios: they are near-linear functions
+# of monthly_income, requested_amount and existing_debt, and they flipped the
+# sign of monthly_income. The GBM keeps them (with monotone constraints).
+LOGREG_DROPPED_FEATURES = (
+    "requested_to_income",
+    "debt_to_annual_income",
+)
+
+# Minimum |x - reference| required before a GBM reason code is emitted,
+# in addition to SHAP > 0 and sitting on the risky side of the reference.
+REASON_MIN_DELTA = {
+    "bureau_score": 10.0,  # points
+    "monthly_income": 200.0,  # BRL / month
+    "employment_months": 3.0,
+    "existing_debt": 500.0,  # BRL
+    "requested_to_income": 0.5,  # months of income
+    "debt_to_annual_income": 0.02,
+    "estimated_dti": 0.02,
+    "dependents": 1.0,
+    "prior_decline_count": 1.0,
+    "prior_application_count": 1.0,
+    "age_at_applied_at": 5.0,  # years
+    "requested_amount": 500.0,  # BRL
+    "term_months": 6.0,
+    "existing_debt_is_missing": 1.0,
+}
+
+BUREAU_TIEBREAK_SEEDS = 20
+
+# Rolling history window for prior_application_count and prior_decline_count.
+# prior_observable_default_count is dropped: a 12-month lookback cannot
+# contain a completed 12m+90d outcome, and the lifetime count drifts
+# sharply between train and OOT.
+HISTORY_LOOKBACK_MONTHS = 12
+DROPPED_HISTORY_FEATURES = ("prior_observable_default_count",)
 
 # Synthetic application-time DTI assumptions — not the contract rate.
 REF_MONTHLY_RATE = 0.02
@@ -51,7 +89,6 @@ MONOTONE = {
     "estimated_dti": 1,
     "dependents": 1,
     "prior_decline_count": 1,
-    "prior_observable_default_count": 1,
 }
 
 EXPECTED_DIRECTION = {
@@ -78,7 +115,10 @@ NUMERIC_FEATURES = [
     "estimated_dti",
     "prior_application_count",
     "prior_decline_count",
-    "prior_observable_default_count",
+]
+
+LOGREG_NUMERIC_FEATURES = [
+    c for c in NUMERIC_FEATURES if c not in LOGREG_DROPPED_FEATURES
 ]
 
 CATEGORICAL_FEATURES = [

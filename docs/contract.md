@@ -25,7 +25,7 @@ A loan is in default if it reaches **90 or more days past due** on an installmen
 - A delinquency that starts on an installment **due after** `disbursed_at + 12 months` is **not** a 12-month default, even if it later reaches 90 DPD.
 - In the generator, loans that are intended to go delinquent draw a first missed installment over months `1..min(12, term)` with **extra weight on months 3–6**, so default timing has a tail into months 9–12 rather than stopping at month 8.
 - Non-observable loans carry `outcome_status = 'immature'` and are excluded from realised default rates and from the training label. `outcome_status` takes exactly the values `default`, `good`, and `immature`.
-- The out-of-time (OOT) validation / ML split contains **only observable loans**; its last disbursement date is recorded in the model card.
+- The out-of-time (OOT) **labelled** evaluation set contains only approved, observable loans (6,022 in this warehouse); its last disbursement date is recorded in the model card. The `split = 'oot'` label in `ml.predictions_scores` is broader — see the scoring-output section.
 - Delinquency for the label is computed from `due_date` and `paid_at` against the global observation cutoff, not from the per-batch `days_past_due` snapshot.
 - Realised default rates must be labelled as **synthetic**.
 
@@ -113,7 +113,7 @@ Table: `predictions_scores`
 
 Primary key: `(application_id, model_version)`.
 
-The **out-of-time (`oot`) split contains only observable loans** (those with `disbursed_at + 12 months + 90 days <= 2026-10-31 UTC`).
+`split = 'oot'` in `predictions_scores` covers **all applications whose `applied_at` falls in the OOT window** (13,720 rows per model in this warehouse), including declined, cancelled, and immature cases. That full slice is the right input for policy simulation. Labelled model metrics (AUC, KS, Brier, band bad rates, approval-rate-matched rates) use only the approved, observable subset (6,022 loans), i.e. originated loans with `disbursed_at + 12 months + 90 days <= 2026-10-31 UTC`.
 
 ## Gold and metrics tables (Analytics Engineering)
 

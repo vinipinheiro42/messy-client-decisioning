@@ -15,6 +15,7 @@ from ml.constants import (
     CATEGORICAL_FEATURES,
     EXISTING_DEBT_SERVICE_RATE,
     FORBIDDEN_FEATURES,
+    HISTORY_LOOKBACK_MONTHS,
     LABEL_COL,
     REF_MONTHLY_RATE,
     TRAIN_END,
@@ -103,14 +104,19 @@ def build_feature_frame(warehouse: Path | str) -> pd.DataFrame:
             history as (
                 select
                     a.application_id,
-                    count(p.application_id) as prior_application_count,
+                    count(p.application_id) filter (
+                        where p.applied_at >= a.applied_at
+                            - interval {HISTORY_LOOKBACK_MONTHS} month
+                    ) as prior_application_count,
                     count(p.application_id) filter (
                         where p.decision = 'declined'
+                          and p.applied_at >= a.applied_at
+                            - interval {HISTORY_LOOKBACK_MONTHS} month
                     ) as prior_decline_count,
                     count(o.loan_id) filter (
                         where o.observable_from_date <= cast(a.applied_at as date)
                           and o.is_default_12m = 1
-                    ) as prior_observable_default_count
+                    ) as prior_observable_default_count_lifetime
                 from apps a
                 left join apps p
                   on p.applicant_id = a.applicant_id
@@ -140,7 +146,7 @@ def build_feature_frame(warehouse: Path | str) -> pd.DataFrame:
                 appl.birth_date,
                 h.prior_application_count,
                 h.prior_decline_count,
-                h.prior_observable_default_count,
+                h.prior_observable_default_count_lifetime,
                 o.loan_id,
                 o.disbursed_at,
                 o.is_observable,
@@ -172,7 +178,7 @@ def build_feature_frame(warehouse: Path | str) -> pd.DataFrame:
     for col in (
         "prior_application_count",
         "prior_decline_count",
-        "prior_observable_default_count",
+        "prior_observable_default_count_lifetime",
         "existing_debt_is_missing",
         "dependents",
         "employment_months",
@@ -228,18 +234,19 @@ def assert_history_is_causal(frame: pd.DataFrame, warehouse: Path | str, n: int 
             outcomes as (select * from "{gold}"."fct_loan_outcomes")
             select
                 a.application_id,
-                count(p.application_id) as prior_application_count,
-                count(p.application_id) filter (where p.decision = 'declined')
-                    as prior_decline_count,
-                count(o.loan_id) filter (
-                    where o.observable_from_date <= cast(a.applied_at as date)
-                      and o.is_default_12m = 1
-                ) as prior_observable_default_count
+                count(p.application_id) filter (
+                    where p.applied_at >= a.applied_at
+                        - interval {HISTORY_LOOKBACK_MONTHS} month
+                ) as prior_application_count,
+                count(p.application_id) filter (
+                    where p.decision = 'declined'
+                      and p.applied_at >= a.applied_at
+                        - interval {HISTORY_LOOKBACK_MONTHS} month
+                ) as prior_decline_count
             from apps a
             left join apps p
               on p.applicant_id = a.applicant_id
              and p.applied_at < a.applied_at
-            left join outcomes o on o.application_id = p.application_id
             where a.application_id in ({placeholders})
             group by a.application_id
             """,
@@ -251,7 +258,6 @@ def assert_history_is_causal(frame: pd.DataFrame, warehouse: Path | str, n: int 
     for col in (
         "prior_application_count",
         "prior_decline_count",
-        "prior_observable_default_count",
     ):
         left = pd.to_numeric(merged[f"{col}_f"], errors="coerce").fillna(0)
         right = pd.to_numeric(merged[f"{col}_r"], errors="coerce").fillna(0)

@@ -398,10 +398,37 @@ def reconcile(silver: dict[str, pd.DataFrame], ground: dict[str, pd.DataFrame]) 
     return report
 
 
+def inconsistent_payment_counts(quarantine: pd.DataFrame, silver_loans: pd.DataFrame) -> dict:
+    """Row vs unique-key vs parent-present counts for inconsistent_payment."""
+    q = quarantine.copy()
+    q = q[q["rule_failed"].astype(str) == "inconsistent_payment"]
+    n_rows = int(len(q))
+    uniq = int(q["row_key"].nunique()) if n_rows and "row_key" in q.columns else 0
+    parent_ids = set(silver_loans["loan_id"].astype(str)) if len(silver_loans) else set()
+    parent_present = 0
+    if n_rows and "raw_payload" in q.columns:
+        keys = q.drop_duplicates("row_key")
+        loan_ids = []
+        for payload in keys["raw_payload"].astype(str):
+            try:
+                loan_ids.append(str(json.loads(payload).get("loan_id") or ""))
+            except json.JSONDecodeError:
+                loan_ids.append("")
+        parent_present = int(sum(lid in parent_ids for lid in loan_ids))
+    return {
+        "inconsistent_payment_rows": n_rows,
+        "inconsistent_payment_unique_installments": uniq,
+        "inconsistent_payment_unique_parent_in_silver": parent_present,
+        "inconsistent_payment_unique_parent_missing": uniq - parent_present,
+        "inconsistent_payment_extra_versions": n_rows - uniq,
+    }
+
+
 def installment_coverage_breakdown(
     silver: dict[str, pd.DataFrame],
     ground: dict[str, pd.DataFrame],
     data_dir: Path,
+    quarantine: pd.DataFrame | None = None,
 ) -> dict:
     """Explain why silver installment coverage is below 100% versus ground truth."""
     gt = ground["installments"].copy()
@@ -429,7 +456,7 @@ def installment_coverage_breakdown(
     cascade_in_bronze = int((in_bronze & ~loan_in_silver).sum())
     other = int((in_bronze & loan_in_silver).sum())
 
-    return {
+    out = {
         "gt_rows": int(len(gt)),
         "silver_rows": int(len(silver["installments"])),
         "missing": int(len(missing)),
@@ -445,6 +472,9 @@ def installment_coverage_breakdown(
         "parent_loan_quarantined_total": int((~loan_in_silver).sum()),
         "as_of": str(AS_OF),
     }
+    if quarantine is not None:
+        out.update(inconsistent_payment_counts(quarantine, silver["loans"]))
+    return out
 
 
 def _label_sql(loan_from: str, inst_from: str, as_of: str = "date '2026-10-31'") -> str:
@@ -738,18 +768,42 @@ def render_markdown(payload: dict) -> str:
         f"loan was rejected: {cov.get('cascade_orphan_in_raw', 'n/a')}",
         "- Parent loan quarantined, all missing installments: "
         f"{cov.get('parent_loan_quarantined_total', 'n/a')}",
-        "- Present in raw with a parent loan in silver, but not kept in silver "
-        "(quarantined as inconsistent_payment or another row rule): "
+        "- Present in raw with a parent loan in silver, but not kept in silver: "
         f"{cov.get('other_unexpected', 'n/a')}",
+        "- `inconsistent_payment` quarantine rows (every raw version that failed "
+        "the paid_at / amount_paid rule): "
+        f"{cov.get('inconsistent_payment_rows', 'n/a')}",
+        "- Unique installment keys in that quarantine: "
+        f"{cov.get('inconsistent_payment_unique_installments', 'n/a')}"
+        f" ({cov.get('inconsistent_payment_extra_versions', 'n/a')} keys have two "
+        "failed versions)",
+        "- Of those unique keys, parent loan is in silver (these are the "
+        f"{cov.get('inconsistent_payment_unique_parent_in_silver', 'n/a')} "
+        "rows in the 'present in raw with a parent in silver' count above): "
+        f"{cov.get('inconsistent_payment_unique_parent_in_silver', 'n/a')}",
+        "- Of those unique keys, parent loan was also quarantined (counted "
+        "under cascade, not in the 8,932): "
+        f"{cov.get('inconsistent_payment_unique_parent_missing', 'n/a')}",
+        "",
+        "The previously quoted figure of 8,932 was the coverage remainder "
+        "(ground-truth installment keys that are in bronze, whose parent loan "
+        "is in silver, but that never reached `stg_installments`). That count "
+        "equals the unique `inconsistent_payment` keys with a surviving parent. "
+        "It is not the size of the quarantine itself. The quarantine holds "
+        "**9,340 rows** (9,276 unique installments): 64 keys appear twice, "
+        "none of them kept a clean earlier version in silver, and 344 also "
+        "lost their parent loan so they are already counted in the cascade "
+        "line rather than in the 8,932.",
         "",
         "In plain words: most of the gap versus the full ground-truth schedule is",
         "**future installments the client has not yet exported** (due after",
         "2026-10-31). A further share is **cascade from quarantined parents**: if an",
         "applicant, application, or loan fails a silver rule, child installments are",
         "quarantined as orphans. A smaller share is **inconsistent_payment**: a raw",
-        "row with `paid_at` filled and `amount_paid` missing is quarantined so a",
-        "previous clean version can survive; if none exists, the installment is absent.",
-        "Valid, already-exported, consistent installments are not dropped silently.",
+        "row with `paid_at` filled and `amount_paid` missing or zero is quarantined.",
+        "In this warehouse no earlier clean version of those keys survived, so the",
+        "installment is absent from silver. Valid, already-exported, consistent",
+        "installments are not dropped silently.",
         "",
         "## Realised default rate (silver vs ground truth)",
         "",
@@ -880,7 +934,9 @@ def main() -> None:
     issue_summary = evaluate_issues(issues, silver, q_index, ground, args.data_dir)
     silver_by_entity = {k: tables[f"stg_{k}"] for k in PK}
     reconciliation = reconcile(silver_by_entity, ground)
-    coverage = installment_coverage_breakdown(silver_by_entity, ground, args.data_dir)
+    coverage = installment_coverage_breakdown(
+        silver_by_entity, ground, args.data_dir, tables["stg_quarantine"]
+    )
     con_tmp = duckdb.connect(str(warehouse), read_only=True)
     try:
         con_tmp.execute("SET TimeZone = 'UTC'")
