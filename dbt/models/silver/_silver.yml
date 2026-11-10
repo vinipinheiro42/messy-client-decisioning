@@ -1,0 +1,154 @@
+version: 2
+
+models:
+  - name: stg_applicants
+    description: >
+      1 row per applicant after standardisation and dedup by latest ingested_at.
+      CPF is formatted to 11 digits; invalid check digits are expected and are
+      not a quarantine reason. Synthetic Credara Fintech data.
+    columns:
+      - name: applicant_id
+        data_tests: [unique, not_null]
+      - name: cpf
+        data_tests: [not_null]
+      - name: birth_date
+        data_tests: [not_null]
+      - name: state_uf
+        data_tests: [not_null]
+      - name: monthly_income
+        data_tests: [not_null]
+      - name: employment_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['clt', 'self_employed', 'public_servant', 'informal', 'unemployed']
+      - name: housing_status
+        data_tests:
+          - accepted_values:
+              values: ['owner', 'renter', 'family', 'financed']
+              config:
+                where: "housing_status is not null"
+      - name: batch_id
+        data_tests: [not_null]
+      - name: source_file
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+
+  - name: stg_applications
+    description: >
+      1 row per application, deduplicated by latest ingested_at.
+      existing_debt is the applicant's total outstanding debt balance in BRL,
+      not a monthly payment. It is left NULL when the raw value is missing or
+      a disguised null; existing_debt_is_missing flags those rows. A missing
+      balance is never imputed as 0.
+    columns:
+      - name: application_id
+        data_tests: [unique, not_null]
+      - name: applicant_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_applicants')
+              field: applicant_id
+      - name: applied_at
+        data_tests: [not_null]
+      - name: requested_amount
+        data_tests: [not_null]
+      - name: purpose
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['personal', 'debt_refinance', 'home_improvement', 'education', 'medical', 'other']
+      - name: channel
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['app', 'web', 'branch', 'partner']
+      - name: decision
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['approved', 'declined', 'cancelled']
+      - name: decided_at
+        data_tests: [not_null]
+      - name: existing_debt
+        description: >
+          Outstanding debt balance in BRL, nullable. Null means the value was
+          missing in the surviving raw version, not a zero balance.
+      - name: existing_debt_is_missing
+        description: True when existing_debt is null.
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+
+  - name: stg_loans
+    description: 1 row per loan, 0 or 1 loan per application.
+    columns:
+      - name: loan_id
+        data_tests: [unique, not_null]
+      - name: application_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_applications')
+              field: application_id
+      - name: disbursed_at
+        data_tests: [not_null]
+      - name: principal
+        data_tests: [not_null]
+      - name: interest_rate_monthly
+        data_tests: [not_null]
+      - name: term_months
+        data_tests: [not_null]
+      - name: installment_amount
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+
+  - name: stg_installments
+    description: >
+      One row per (loan_id, installment_number). days_past_due is as of the
+      cutoff of the batch that last loaded the row.
+    columns:
+      - name: installment_id
+        data_tests: [unique, not_null]
+      - name: loan_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_loans')
+              field: loan_id
+      - name: installment_number
+        data_tests: [not_null]
+      - name: due_date
+        data_tests: [not_null]
+      - name: amount_due
+        data_tests: [not_null]
+      - name: days_past_due
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+  - name: stg_quarantine
+    description: Rows rejected by silver quality rules (synthetic data).
+    columns:
+      - name: source_table
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['applicants', 'applications', 'loans', 'installments']
+      - name: source_row_hash
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: rule_failed
+        data_tests: [not_null]
+      - name: raw_payload
+        data_tests: [not_null]

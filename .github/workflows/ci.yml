@@ -1,0 +1,27 @@
+# Local CI definition only. This repository is not published and must not be
+# pushed to a remote without explicit approval from the project owner.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: make setup
+      - name: Generate synthetic data
+        run: make data
+      - name: Build bronze and silver
+        run: make dbt
+      - name: Quality report
+        run: make quality
+      - name: Lint and unit tests
+        run: make check

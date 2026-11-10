@@ -1,0 +1,34 @@
+# landing: pre-loaded by scripts/load_bronze.py (handles encoding, delimiter,
+# and renamed columns). ml.predictions_scores is written by the M3 job; the
+# pre-load step creates an empty table so gold can compile before then.
+version: 2
+
+sources:
+  - name: ml
+    schema: ml
+    description: >
+      Model outputs written by the Python scoring pipeline.
+      All scores are produced on synthetic Credara Fintech data.
+      Model versions: baseline_logreg_v1 and gbm_v1.
+    tables:
+      - name: predictions_scores
+        description: >
+          One score per application and model version.
+          Primary key: (application_id, model_version).
+        columns:
+          - name: application_id
+            description: Foreign key to stg_applications.application_id
+          - name: model_version
+            description: Immutable model identifier (`baseline_logreg_v1` or `gbm_v1`)
+          - name: pd
+            description: Calibrated probability of default in [0, 1]
+          - name: score
+            description: Integer 300-900, higher is better (lower PD)
+          - name: risk_band
+            description: Discrete band A-E derived from the score
+          - name: reason_codes
+            description: JSON list of the top-3 SHAP reason codes
+          - name: split
+            description: train, validation, or oot
+          - name: scored_at
+            description: UTC timestamp when the score was produced

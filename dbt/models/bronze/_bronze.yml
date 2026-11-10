@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: brz_applicants
+    description: All raw applicant extracts, canonical column names, still messy values. Synthetic Credara Fintech data.
+    columns:
+      - name: applicant_id
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: source_file
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+
+  - name: brz_applications
+    description: All raw application extracts with canonical column names. Synthetic.
+    columns:
+      - name: application_id
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+      - name: source_file
+        data_tests: [not_null]
+      - name: ingested_at
+        data_tests: [not_null]
+
+  - name: brz_loans
+    description: All raw loan extracts with canonical column names. Synthetic.
+    columns:
+      - name: loan_id
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]
+
+  - name: brz_installments
+    description: All raw installment extracts with canonical column names. Synthetic.
+    columns:
+      - name: installment_id
+        data_tests: [not_null]
+      - name: batch_id
+        data_tests: [not_null]

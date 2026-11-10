@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: agg_funnel_monthly
+    description: "Grain: application_month. Funnel applications -> approved -> booked."
+    columns:
+      - name: application_month
+        data_tests: [unique, not_null]
+  - name: agg_vintage_default
+    description: "Grain: vintage_month (disbursement month). 12m default rate over observable loans only."
+    columns:
+      - name: vintage_month
+        data_tests: [unique, not_null]
+  - name: agg_model_performance
+    description: "Grain: model_version x split. AUC, Gini, KS, Brier on observable outcomes. Headline = oot."
+    columns:
+      - name: split
+        data_tests:
+          - accepted_values:
+                values: ['train', 'validation', 'oot']
+  - name: agg_calibration_deciles
+    description: "Grain: model_version x pd_decile, OOT only. Mean predicted PD vs observed default rate."
+    columns:
+      - name: pd_decile
+        data_tests:
+          - not_null
+          - accepted_values:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                quote: false
+  - name: agg_data_quality
+    description: "Grain: source_entity x batch_id x rule_failed. check_type is quarantine (silver rejects) or completeness (e.g. existing_debt_missing rate on accepted applications)."
+    columns:
+      - name: rule_failed
+        data_tests: [not_null]
+      - name: check_type
+        data_tests:
+          - not_null
+          - accepted_values:
+                values: ['quarantine', 'completeness']
+  - name: agg_model_comparison_at_approval_rate
+    description: "Grain: model_version x target_approval_rate, OOT only. Proof of Value at equal approval rate."
+    columns:
+      - name: target_approval_rate
+        data_tests: [not_null]

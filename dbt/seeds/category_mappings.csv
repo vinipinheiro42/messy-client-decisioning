@@ -1,0 +1,132 @@
+column_name,raw_value,canonical_value
+employment_type,clt,clt
+employment_type,carteira assinada,clt
+employment_type,celetista,clt
+employment_type,self_employed,self_employed
+employment_type,autonomo,self_employed
+employment_type,autônomo,self_employed
+employment_type,MEI,self_employed
+employment_type,self-employed,self_employed
+employment_type,public_servant,public_servant
+employment_type,servidor,public_servant
+employment_type,servidor público,public_servant
+employment_type,Servidor Publico,public_servant
+employment_type,public servant,public_servant
+employment_type,informal,informal
+employment_type,sem carteira,informal
+employment_type,bico,informal
+employment_type,unemployed,unemployed
+employment_type,desempregado,unemployed
+employment_type,sem vinculo,unemployed
+housing_status,owner,owner
+housing_status,proprio,owner
+housing_status,próprio,owner
+housing_status,casa propria,owner
+housing_status,renter,renter
+housing_status,alugado,renter
+housing_status,aluguel,renter
+housing_status,rent,renter
+housing_status,family,family
+housing_status,familia,family
+housing_status,família,family
+housing_status,com os pais,family
+housing_status,parentes,family
+housing_status,financed,financed
+housing_status,financiado,financed
+housing_status,financiamento,financed
+purpose,personal,personal
+purpose,pessoal,personal
+purpose,livre,personal
+purpose,debt_refinance,debt_refinance
+purpose,refinanciamento,debt_refinance
+purpose,troca de divida,debt_refinance
+purpose,debt refinance,debt_refinance
+purpose,home_improvement,home_improvement
+purpose,reforma,home_improvement
+purpose,casa,home_improvement
+purpose,education,education
+purpose,educacao,education
+purpose,educação,education
+purpose,curso,education
+purpose,medical,medical
+purpose,saude,medical
+purpose,saúde,medical
+purpose,hospital,medical
+purpose,other,other
+purpose,outros,other
+purpose,diversos,other
+channel,app,app
+channel,aplicativo,app
+channel,mobile,app
+channel,web,web
+channel,site,web
+channel,internet,web
+channel,branch,branch
+channel,agencia,branch
+channel,agência,branch
+channel,loja,branch
+channel,partner,partner
+channel,parceiro,partner
+channel,correspondente,partner
+decision,approved,approved
+decision,aprovado,approved
+decision,declined,declined
+decision,reprovado,declined
+decision,negado,declined
+decision,cancelled,cancelled
+decision,canceled,cancelled
+decision,cancelado,cancelled
+state_uf,AC,AC
+state_uf,Acre,AC
+state_uf,AL,AL
+state_uf,Alagoas,AL
+state_uf,AP,AP
+state_uf,Amapa,AP
+state_uf,AM,AM
+state_uf,Amazonas,AM
+state_uf,BA,BA
+state_uf,Bahia,BA
+state_uf,CE,CE
+state_uf,Ceara,CE
+state_uf,DF,DF
+state_uf,Distrito Federal,DF
+state_uf,ES,ES
+state_uf,Espirito Santo,ES
+state_uf,GO,GO
+state_uf,Goias,GO
+state_uf,MA,MA
+state_uf,Maranhao,MA
+state_uf,MT,MT
+state_uf,Mato Grosso,MT
+state_uf,MS,MS
+state_uf,Mato Grosso do Sul,MS
+state_uf,MG,MG
+state_uf,Minas Gerais,MG
+state_uf,PA,PA
+state_uf,Para,PA
+state_uf,PB,PB
+state_uf,Paraiba,PB
+state_uf,PR,PR
+state_uf,Parana,PR
+state_uf,PE,PE
+state_uf,Pernambuco,PE
+state_uf,PI,PI
+state_uf,Piaui,PI
+state_uf,RJ,RJ
+state_uf,Rio de Janeiro,RJ
+state_uf,RN,RN
+state_uf,Rio Grande do Norte,RN
+state_uf,RS,RS
+state_uf,Rio Grande do Sul,RS
+state_uf,RO,RO
+state_uf,Rondonia,RO
+state_uf,RR,RR
+state_uf,Roraima,RR
+state_uf,SC,SC
+state_uf,Santa Catarina,SC
+state_uf,SP,SP
+state_uf,Sao Paulo,SP
+state_uf,SE,SE
+state_uf,Sergipe,SE
+state_uf,TO,TO
+state_uf,Tocantins,TO

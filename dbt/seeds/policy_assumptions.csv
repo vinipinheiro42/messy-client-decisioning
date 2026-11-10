@@ -1,0 +1,9 @@
+assumption_key,value,unit,is_synthetic,description
+gross_interest_margin_annual,0.22,rate,true,Synthetic annual GROSS interest margin used only in Proof of Value illustrations (average-balance approximation of an amortized loan)
+funding_cost_annual,0.12,rate,true,Synthetic annual funding cost; net margin = gross_interest_margin_annual - funding_cost_annual. Not a market quote. A future version may replace the gross margin with the contract interest_rate_monthly (from stg_loans) minus this funding cost
+lgd,0.65,rate,true,Synthetic loss given default (fraction of exposure) for unsecured personal credit; used as expected_loss = PD x EAD x LGD
+acquisition_cost_brl,180,BRL,true,Synthetic customer acquisition cost per originated loan
+underwriting_cost_brl,25,BRL,true,Synthetic variable cost to underwrite one application
+recovery_lag_months,8,months,true,Synthetic expected recovery lag after default; not used in this version (no discounting)
+discount_rate_annual,0.105,rate,true,Synthetic discount rate for expected-loss illustrations; not a market quote; not used in this version
+default_definition,90_dpd_within_12m,label,true,Default if 90+ days past due within 12 months of disbursement

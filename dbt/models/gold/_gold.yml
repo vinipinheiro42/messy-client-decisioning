@@ -1,0 +1,109 @@
+version: 2
+
+models:
+  - name: dim_snapshot
+    description: "One row with the observation (cutoff) date used to decide outcome maturity. Defaults to the contract cutoff 2026-10-31; override with var as_of_date."
+    columns:
+      - name: as_of_date
+        data_tests: [not_null]
+
+  - name: dim_policy_assumptions
+    description: "One row of SYNTHETIC policy assumptions pivoted from seed policy_assumptions."
+    columns:
+      - name: gross_interest_margin_annual
+        data_tests: [not_null]
+      - name: funding_cost_annual
+        data_tests: [not_null]
+      - name: net_interest_margin_annual
+        data_tests: [not_null]
+      - name: lgd
+        data_tests: [not_null]
+      - name: acquisition_cost_brl
+        data_tests: [not_null]
+
+  - name: dim_applicant
+    description: "Grain: 1 row per applicant_id. Adds age band (age at first application), monthly income band, and a rollup of missing existing_debt on the applicant's applications."
+    columns:
+      - name: applicant_id
+        data_tests: [unique, not_null]
+      - name: age_band
+        data_tests:
+          - accepted_values:
+                values: ['18-24', '25-34', '35-44', '45-59', '60+', 'unknown']
+      - name: income_band
+        data_tests:
+          - accepted_values:
+                values: ['< 2k', '2k-4k', '4k-8k', '8k-15k', '15k+', 'unknown']
+      - name: has_missing_existing_debt
+        data_tests: [not_null]
+
+  - name: fct_applications
+    description: "Grain: 1 row per application_id, with decision flags, loan flag, time to decision, income commitment, and existing_debt_is_missing. debt_to_annual_income is NULL when existing_debt is NULL."
+    columns:
+      - name: application_id
+        data_tests: [unique, not_null]
+      - name: applicant_id
+        data_tests:
+          - not_null
+          - relationships:
+                to: ref('dim_applicant')
+                field: applicant_id
+      - name: decision
+        data_tests:
+          - accepted_values:
+                values: ['approved', 'declined', 'cancelled']
+      - name: income_commitment_basis
+        data_tests:
+          - accepted_values:
+                values: ['contract_installment', 'requested_amount_div_term', 'not_computable']
+      - name: loan_id
+        data_tests:
+          - unique
+      - name: existing_debt_is_missing
+        data_tests: [not_null]
+      # existing_debt and debt_to_annual_income are nullable (missing debt must not be coerced to 0)
+
+  - name: fct_loan_outcomes
+    description: "Grain: 1 row per loan_id. 12m default label (90+ DPD on an installment due within 12 months of disbursement, computed from due_date and paid_at vs the global cutoff, never from per-batch days_past_due), observability, EAD and amounts paid."
+    columns:
+      - name: loan_id
+        data_tests: [unique, not_null]
+      - name: application_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+                to: ref('fct_applications')
+                field: application_id
+      - name: outcome_status
+        data_tests:
+          - not_null
+          - accepted_values:
+                values: ['default', 'good', 'immature']
+      - name: is_observable
+        data_tests: [not_null]
+
+  - name: fct_scores
+    description: "Grain: 1 row per application_id x model_version, with historical decision and observed outcome."
+    columns:
+      - name: score_key
+        description: "application_id|model_version (surrogate of the composite PK)."
+        data_tests: [unique, not_null]
+      - name: application_id
+        data_tests:
+          - not_null
+          - relationships:
+                to: ref('fct_applications')
+                field: application_id
+      - name: split
+        data_tests:
+          - accepted_values:
+                values: ['train', 'validation', 'oot']
+
+  - name: agg_policy_simulation
+    description: "Grain: model_version x score_cutoff (300..900 step 10), OOT only. Uses SYNTHETIC policy assumptions."
+    columns:
+      - name: model_version
+        data_tests: [not_null]
+      - name: score_cutoff
+        data_tests: [not_null]

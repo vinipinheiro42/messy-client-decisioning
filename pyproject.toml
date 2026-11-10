@@ -1,0 +1,20 @@
+[project]
+name = "messy-client-decisioning"
+version = "0.1.0"
+description = "Portfolio case: messy client credit data to an explainable decisioning pipeline (synthetic data only)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+addopts = "-q"

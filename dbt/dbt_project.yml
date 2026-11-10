@@ -1,0 +1,56 @@
+name: messy_client
+version: "0.1.0"
+profile: messy_client
+config-version: 2
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  as_of_date: "2026-10-31"
+  landing_dir: "../data/bronze"
+
+on-run-start:
+  - "SET TimeZone = 'UTC'"
+
+# Naming convention (also documented in docs/contract.md):
+#   bronze  brz_*
+#   silver  stg_*
+#   gold    fct_* / dim_* / agg_*
+models:
+  messy_client:
+    bronze:
+      +schema: bronze
+      +materialized: table
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
+    metrics:
+      +schema: gold
+      +materialized: table
+
+seeds:
+  messy_client:
+    +schema: seeds
+    +quote_columns: false
+    category_mappings:
+      +column_types:
+        column_name: varchar
+        raw_value: varchar
+        canonical_value: varchar
+    batch_cutoffs:
+      +column_types:
+        batch_id: varchar
+        cutoff_date: date
+        extracted_at: varchar
+        delimiter: varchar
+        encoding: varchar

@@ -1,0 +1,236 @@
+{
+  "client": "Credara Fintech (fictional)",
+  "is_synthetic": true,
+  "warehouse": "/workspace/portfolio/messy-client-decisioning/data/warehouse.duckdb",
+  "issue_types": {
+    "exact_duplicate": {
+      "n": 6119,
+      "recovered": 5844,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 275,
+      "detected": 6119,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 0.9550580160156888
+    },
+    "near_duplicate": {
+      "n": 478,
+      "recovered": 462,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 16,
+      "detected": 478,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 0.9665271966527197
+    },
+    "malformed_cpf": {
+      "n": 2400,
+      "recovered": 2377,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 0,
+      "detected": 2377,
+      "missed": 23,
+      "recall": 0.9904166666666666,
+      "recovery_rate": 0.9904166666666666
+    },
+    "mixed_date_format": {
+      "n": 232192,
+      "recovered": 128880,
+      "correctly_nullified": 0,
+      "day_correct": 220123,
+      "time_lost": 91243,
+      "quarantined": 12069,
+      "detected": 232192,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 0.5550578831312017
+    },
+    "currency_as_text": {
+      "n": 376690,
+      "recovered": 357338,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 19197,
+      "detected": 376535,
+      "missed": 155,
+      "recall": 0.9995885210650668,
+      "recovery_rate": 0.9486261912978842
+    },
+    "disguised_null": {
+      "n": 12242,
+      "recovered": 845,
+      "correctly_nullified": 725,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 10619,
+      "detected": 12189,
+      "missed": 53,
+      "recall": 0.9956706420519523,
+      "recovery_rate": 0.06902466917170397
+    },
+    "inconsistent_category": {
+      "n": 42000,
+      "recovered": 40787,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 1181,
+      "detected": 41968,
+      "missed": 32,
+      "recall": 0.9992380952380953,
+      "recovery_rate": 0.9711190476190477
+    },
+    "late_arriving_event": {
+      "n": 10219,
+      "recovered": 9661,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 558,
+      "detected": 10219,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 0.9453958312946472
+    },
+    "schema_change": {
+      "n": 13,
+      "recovered": 13,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 0,
+      "detected": 13,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 1.0
+    },
+    "outlier": {
+      "n": 180,
+      "recovered": 0,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 179,
+      "detected": 179,
+      "missed": 1,
+      "recall": 0.9944444444444445,
+      "recovery_rate": 0.0
+    },
+    "orphan_fk": {
+      "n": 20,
+      "recovered": 0,
+      "correctly_nullified": 0,
+      "day_correct": 0,
+      "time_lost": 0,
+      "quarantined": 20,
+      "detected": 20,
+      "missed": 0,
+      "recall": 1.0,
+      "recovery_rate": 0.0
+    }
+  },
+  "reconciliation": {
+    "applicants": {
+      "ground_truth_rows": 20000,
+      "silver_rows": 19760,
+      "matched_keys": 19760,
+      "gt_missing_from_silver": 240,
+      "silver_not_in_gt": 0,
+      "key_coverage": 0.988,
+      "date_exact_match_rate__birth_date": 1.0,
+      "money_exact_match_rate__monthly_income": 1.0
+    },
+    "applications": {
+      "ground_truth_rows": 50000,
+      "silver_rows": 48200,
+      "matched_keys": 48200,
+      "gt_missing_from_silver": 1800,
+      "silver_not_in_gt": 0,
+      "key_coverage": 0.964,
+      "date_exact_match_rate__applied_at": 0.7993568464730291,
+      "date_day_match_rate__applied_at": 1.0,
+      "date_time_lost_rate__applied_at": 0.20064315352697096,
+      "date_exact_match_rate__decided_at": 0.7996058091286307,
+      "date_day_match_rate__decided_at": 1.0,
+      "date_time_lost_rate__decided_at": 0.20039419087136928,
+      "money_exact_match_rate__requested_amount": 1.0,
+      "money_exact_match_rate__existing_debt": 0.9929668049792532
+    },
+    "loans": {
+      "ground_truth_rows": 30525,
+      "silver_rows": 29418,
+      "matched_keys": 29418,
+      "gt_missing_from_silver": 1107,
+      "silver_not_in_gt": 0,
+      "key_coverage": 0.9637346437346437,
+      "date_exact_match_rate__disbursed_at": 0.7999184172955334,
+      "date_day_match_rate__disbursed_at": 1.0,
+      "date_time_lost_rate__disbursed_at": 0.20008158270446666,
+      "money_exact_match_rate__principal": 1.0,
+      "money_exact_match_rate__installment_amount": 1.0
+    },
+    "installments": {
+      "ground_truth_rows": 558324,
+      "silver_rows": 479362,
+      "matched_keys": 479362,
+      "gt_missing_from_silver": 78962,
+      "silver_not_in_gt": 0,
+      "key_coverage": 0.8585731582378691,
+      "date_exact_match_rate__due_date": 1.0,
+      "date_exact_match_rate__paid_at": 0.8622606714758366,
+      "date_day_match_rate__paid_at": 1.0,
+      "date_time_lost_rate__paid_at": 0.13773932852416337,
+      "money_exact_match_rate__amount_due": 1.0,
+      "money_exact_match_rate__amount_paid": 1.0
+    }
+  },
+  "installment_coverage": {
+    "gt_rows": 558324,
+    "silver_rows": 479362,
+    "missing": 78962,
+    "coverage": 0.8585731582378691,
+    "not_in_raw_extract": 51208,
+    "due_after_last_cutoff": 51208,
+    "future_schedule_parent_present": 49207,
+    "future_schedule_and_parent_quarantined": 2001,
+    "cascade_orphan_in_raw": 18822,
+    "other_unexpected": 8932,
+    "parent_loan_quarantined_total": 20823,
+    "as_of": "2026-10-31 00:00:00+00:00"
+  },
+  "outcomes": {
+    "silver": {
+      "n_loans": 29418,
+      "observable": 26951,
+      "immature": 2467,
+      "defaults": 2930,
+      "default_rate": 0.10871581759489443
+    },
+    "ground_truth": {
+      "n_loans": 30525,
+      "observable": 27972,
+      "immature": 2553,
+      "defaults": 3032,
+      "default_rate": 0.10839410839410839
+    }
+  },
+  "paid_in_full": {
+    "matched_keys": 479362,
+    "silver_paid_in_full": 439418,
+    "gt_paid_in_full": 439418,
+    "paid_in_full_rate_silver": 0.9166725773006621,
+    "paid_in_full_rate_gt": 0.9166725773006621,
+    "gt_full_but_silver_not": 0,
+    "silver_full_but_gt_not": 0,
+    "paid_at_with_zero_or_null_amount": 0
+  },
+  "quarantine_rows": 31212,
+  "notes": "- `malformed_cpf`: 23 of 2400 injected rows were not detected (1.0% miss rate). Recovered 2377 (99.0%).\n- `currency_as_text`: 155 of 376690 injected rows were not detected (0.0% miss rate). Recovered 357338 (94.9%).\n- `disguised_null`: 53 of 12242 injected rows were not detected (0.4% miss rate). Recovered 845 (6.9%).\n- `inconsistent_category`: 32 of 42000 injected rows were not detected (0.1% miss rate). Recovered 40787 (97.1%).\n- `outlier`: 1 of 180 injected rows were not detected (0.6% miss rate). Recovered 0 (0.0%).\n- applicants: 240 ground-truth keys are absent from silver. For applicants, applications and loans the usual cause is an outlier or required-field failure on every raw version, or a cascade from a quarantined parent. For installments, see the coverage section: most absences are future dues not present in the raw extracts.\n- applications: 1800 ground-truth keys are absent from silver. For applicants, applications and loans the usual cause is an outlier or required-field failure on every raw version, or a cascade from a quarantined parent. For installments, see the coverage section: most absences are future dues not present in the raw extracts.\n- loans: 1107 ground-truth keys are absent from silver. For applicants, applications and loans the usual cause is an outlier or required-field failure on every raw version, or a cascade from a quarantined parent. For installments, see the coverage section: most absences are future dues not present in the raw extracts.\n- installments: 78962 ground-truth keys are absent from silver. For applicants, applications and loans the usual cause is an outlier or required-field failure on every raw version, or a cascade from a quarantined parent. For installments, see the coverage section: most absences are future dues not present in the raw extracts.\n- `stg_quarantine` contains 31212 rejected raw rows (all versions that failed a rule).\n- Near-duplicates were injected on a later batch. Silver keeps the latest conforming `ingested_at`. Trailing-space name/channel mutations are trimmed and should match ground truth; a later numeric drift (for example amount + 1) is kept and is counted as not recovered if it disagrees with ground truth.\n- `existing_debt` is left `NULL` when the surviving raw value is missing or a disguised null; `existing_debt_is_missing` is true on those rows. A missing balance is never imputed as 0. `amount_paid` is 0 only when the installment is unpaid (`paid_at` is null). A paid_at with a missing amount is quarantined as inconsistent_payment so an earlier clean version can survive.\n- A small number of field-level misses may be keys that were quarantined under a different rule (for example an outlier) and are therefore not attributed to the injected issue type.\n- Late-arriving installments are expected to appear in silver once the later batch is loaded; they are not quarantined solely for arriving late."
+}

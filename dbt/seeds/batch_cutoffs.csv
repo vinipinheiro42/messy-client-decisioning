@@ -1,0 +1,4 @@
+batch_id,cutoff_date,extracted_at,delimiter,encoding
+batch_001,2024-06-30,2024-07-02T15:00:00Z,",",utf-8
+batch_002,2025-03-31,2025-04-02T15:00:00Z,;,iso-8859-1
+batch_003,2026-10-31,2026-11-02T15:00:00Z,",",utf-8
