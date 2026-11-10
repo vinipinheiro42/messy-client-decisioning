@@ -3,7 +3,7 @@ PIP ?= .venv/bin/pip
 DBT ?= .venv/bin/dbt
 export PATH := /home/box/.local/bin:$(PATH)
 
-.PHONY: setup data check bronze dbt quality train api dashboard
+.PHONY: setup data check bronze dbt quality train api docker-build drift dashboard
 
 setup:
 	python3 -m venv .venv
@@ -14,7 +14,7 @@ data:
 	$(PYTHON) scripts/generate_data.py --seed 42
 
 check:
-	$(PYTHON) -m ruff check scripts tests ml
+	$(PYTHON) -m ruff check scripts tests ml api
 	$(PYTHON) -m pytest
 
 bronze:
@@ -42,7 +42,13 @@ train:
 	-cd dbt && ../$(DBT) test --select gold metrics path:tests/gold --profiles-dir .
 
 api:
-	@echo "Placeholder: scoring API is scheduled for milestone M4."
+	$(PYTHON) -m uvicorn api.app:app --reload --host 127.0.0.1 --port 8000
+
+docker-build:
+	docker build -t messy-client-scoring:local .
+
+drift:
+	PYTHONPATH=$(CURDIR) $(PYTHON) scripts/monitor_drift.py
 
 dashboard:
 	$(PIP) install -r dashboard/requirements.txt

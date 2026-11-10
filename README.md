@@ -1,6 +1,6 @@
 # Messy Client Data → Decisioning
 
-Portfolio case study. **Work in progress.** Milestone M2 is in this tree: a synthetic data generator, dbt bronze/silver models, silver tests, and a data-quality report. Gold and metrics models (Analytics Engineering) and the Streamlit dashboard already exist in the repo but are not owned by Data Engineering. The credit model, scoring API, and Proof of Value are not built yet.
+Portfolio case study for the fictional client Credara Fintech, **synthetic data only**. Milestones M1–M3 and the M4 scoring API, Dockerfile, and drift monitor are in this tree. Gold/metrics models and the Streamlit dashboard are owned by Analytics Engineering. The English Proof of Value is not started. This repository is local-only and must not be published without the owner's approval.
 
 ## Fictional client
 
@@ -32,6 +32,7 @@ docs/                      # contract, issue catalogue, quality report
 scripts/generate_data.py   # deterministic synthetic generator
 scripts/load_bronze.py     # encoding / delimiter / rename pre-load into bronze
 scripts/quality_report.py  # silver vs ground truth and the issues log
+scripts/monitor_drift.py   # score/feature PSI vs the training window
 ```
 
 Raw batch `batch_002` uses a semicolon delimiter and ISO-8859-1 encoding, and renames some columns. `scripts/load_bronze.py` reads each batch with the correct options, maps `income_monthly` → `monthly_income` and `amount_requested` → `requested_amount`, attaches `batch_id`, `source_file`, and `ingested_at`, and writes `data/bronze/*.parquet` for the dbt bronze models. That pre-load is part of `make dbt`.
@@ -43,21 +44,38 @@ Raw batch `batch_002` uses a semicolon delimiter and ISO-8859-1 encoding, and re
 | M1 | Repo, synthetic generator, issue log, contract, tests | Delivered |
 | M2 | dbt bronze/silver, quality tests, data-quality report, generator observability and counterfactuals | Delivered in this tree |
 | M3 | Explainable credit model (`baseline_logreg_v1`, `gbm_v1`) and `predictions_scores` | Done locally (see `docs/modeling_plan.md` and `docs/model_card.md`) |
-| M4 | Scoring API, dashboard (AE), Proof of Value (English) | Dashboard code exists (AE); API and PoV not started |
+| M4 | Scoring API, Dockerfile, drift monitor; dashboard (AE); Proof of Value (English) | API, container file, and drift monitor done locally. Dashboard code exists (AE). PoV not started. |
 
 ## How to run (local only)
 
 This project is intended to stay on the local machine. Do not push it to GitHub or any other remote unless the owner explicitly approves publication.
 
 ```bash
-make setup     # create .venv and install dependencies
-make data      # generate ground truth + messy exports (seed 42, default size)
-make dbt       # bronze pre-load, dbt seed/run/test for bronze+silver; gold/metrics attempted
-make quality   # write docs/quality_report.md and docs/quality_report.json
-make train     # fit models, write ml.predictions_scores, refresh gold/metrics
-make check     # ruff + pytest
-make dashboard # streamlit run dashboard/app.py with MC_DUCKDB_PATH=data/warehouse.duckdb
+make setup        # create .venv and install dependencies
+make data         # generate ground truth + messy exports (seed 42, default size)
+make dbt          # bronze pre-load, dbt seed/run/test for bronze+silver; gold/metrics attempted
+make quality      # write docs/quality_report.md and docs/quality_report.json
+make train        # fit models, write ml.predictions_scores, refresh gold/metrics
+make check        # ruff + pytest (includes API parity and latency)
+make api          # uvicorn on 127.0.0.1:8000 (POST /score, GET /health, GET /model-info)
+make drift        # PSI train vs OOT and a shifted batch → docs/drift_report.md
+make docker-build # docker build -t messy-client-scoring:local . (requires Docker and trained artifacts)
+make dashboard    # streamlit (Analytics Engineering)
 ```
+
+The scoring API reuses the training feature path in `ml/features.py` and the
+artifacts in `ml/artifacts/models.joblib` (rebuilt by `make train`, gitignored
+if large). `POST /score` accepts application-time fields only. History fields
+`prior_application_count` and `prior_decline_count` are optional and default
+to 0; they should be the rolling 12-month counts when the caller has them.
+The default model is `gbm_v1`; pass `model_version=baseline_logreg_v1` as a
+query parameter or JSON field to use the logistic baseline.
+
+An honest model-card finding: after the history-window fix, `gbm_v1` remains
+essentially tied with raw `bureau_score` on OOT AUC; paired-bootstrap CIs for
+ΔAUC, ΔKS and matched bad rates include 0. The logistic baseline's OOT AUC
+rose once `prior_observable_default_count` was dropped. Details are in
+[`docs/model_card.md`](docs/model_card.md).
 
 Default generation size is approximately 20,000 applicants and 50,000 applications (`--seed` and `--scale` / size flags are available on the generator).
 

@@ -9,7 +9,7 @@ license = { text = "MIT" }
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["scripts", "tests", "ml"]
+src = ["scripts", "tests", "ml", "api"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

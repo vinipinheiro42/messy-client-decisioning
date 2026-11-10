@@ -75,6 +75,46 @@ def assign_fit_role(applied_at: pd.Series) -> pd.Series:
     return out
 
 
+
+def add_derived_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Age, ratios, DTI, and type coercion used by both training and the API."""
+    frame = frame.copy()
+    frame["applied_at"] = pd.to_datetime(frame["applied_at"], utc=True)
+    if "birth_date" in frame.columns:
+        frame["birth_date"] = pd.to_datetime(frame["birth_date"], utc=True)
+        age_days = (frame["applied_at"] - frame["birth_date"]).dt.total_seconds() / 86400.0
+        frame["age_at_applied_at"] = age_days / 365.25
+    if "disbursed_at" in frame.columns:
+        frame["disbursed_at"] = pd.to_datetime(frame["disbursed_at"], utc=True)
+    income = pd.to_numeric(frame["monthly_income"], errors="coerce").replace(0, np.nan)
+    requested = pd.to_numeric(frame["requested_amount"], errors="coerce")
+    debt = pd.to_numeric(frame.get("existing_debt"), errors="coerce")
+    if "existing_debt_is_missing" not in frame.columns:
+        frame["existing_debt_is_missing"] = debt.isna().astype(int)
+    frame["requested_to_income"] = requested / income
+    frame["debt_to_annual_income"] = debt / (12.0 * income)
+    payment = annuity_payment(requested, frame["term_months"], REF_MONTHLY_RATE)
+    debt_service = debt.fillna(0.0) * EXISTING_DEBT_SERVICE_RATE
+    frame["estimated_dti"] = (payment + debt_service) / income
+    for col in (
+        "prior_application_count",
+        "prior_decline_count",
+        "prior_observable_default_count_lifetime",
+        "existing_debt_is_missing",
+        "dependents",
+        "employment_months",
+    ):
+        if col in frame.columns:
+            frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    frame["existing_debt_is_missing"] = frame["existing_debt_is_missing"].fillna(0).astype(int)
+    for col in ("prior_application_count", "prior_decline_count"):
+        if col not in frame.columns:
+            frame[col] = 0
+        else:
+            frame[col] = frame[col].fillna(0)
+    return frame
+
+
 def build_feature_frame(warehouse: Path | str) -> pd.DataFrame:
     """One row per silver application, with application-time features and labels."""
     con = connect_warehouse(warehouse, read_only=True)
@@ -162,29 +202,7 @@ def build_feature_frame(warehouse: Path | str) -> pd.DataFrame:
     finally:
         con.close()
 
-    frame["applied_at"] = pd.to_datetime(frame["applied_at"], utc=True)
-    frame["birth_date"] = pd.to_datetime(frame["birth_date"], utc=True)
-    frame["disbursed_at"] = pd.to_datetime(frame["disbursed_at"], utc=True)
-    age_days = (frame["applied_at"] - frame["birth_date"]).dt.total_seconds() / 86400.0
-    frame["age_at_applied_at"] = age_days / 365.25
-    income = pd.to_numeric(frame["monthly_income"], errors="coerce").replace(0, np.nan)
-    requested = pd.to_numeric(frame["requested_amount"], errors="coerce")
-    debt = pd.to_numeric(frame["existing_debt"], errors="coerce")
-    frame["requested_to_income"] = requested / income
-    frame["debt_to_annual_income"] = debt / (12.0 * income)
-    payment = annuity_payment(requested, frame["term_months"], REF_MONTHLY_RATE)
-    debt_service = debt.fillna(0.0) * EXISTING_DEBT_SERVICE_RATE
-    frame["estimated_dti"] = (payment + debt_service) / income
-    for col in (
-        "prior_application_count",
-        "prior_decline_count",
-        "prior_observable_default_count_lifetime",
-        "existing_debt_is_missing",
-        "dependents",
-        "employment_months",
-    ):
-        frame[col] = pd.to_numeric(frame[col], errors="coerce")
-    frame["existing_debt_is_missing"] = frame["existing_debt_is_missing"].fillna(0).astype(int)
+    frame = add_derived_features(frame)
     frame["split"] = assign_split(frame["applied_at"])
     frame["fit_role"] = assign_fit_role(frame["applied_at"])
     frame["has_label"] = (

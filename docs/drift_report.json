@@ -1,0 +1,206 @@
+{
+  "client": "Credara Fintech (fictional)",
+  "is_synthetic": true,
+  "generated_at": "2026-11-10T20:18:02+00:00",
+  "model_version": "gbm_v1",
+  "batches": {
+    "oot": {
+      "thresholds": {
+        "warn": 0.1,
+        "alert": 0.25
+      },
+      "overall_flag": "warn",
+      "series": [
+        {
+          "feature": "score",
+          "binning": "decile",
+          "psi": 0.0004889648949827328,
+          "flag": "ok"
+        },
+        {
+          "feature": "bureau_score",
+          "binning": "decile",
+          "psi": 0.0004508540786215827,
+          "flag": "ok"
+        },
+        {
+          "feature": "estimated_dti",
+          "binning": "decile",
+          "psi": 0.00168885956959197,
+          "flag": "ok"
+        },
+        {
+          "feature": "requested_to_income",
+          "binning": "decile",
+          "psi": 0.0009241200498672641,
+          "flag": "ok"
+        },
+        {
+          "feature": "debt_to_annual_income",
+          "binning": "decile",
+          "psi": 0.0013366197727069863,
+          "flag": "ok"
+        },
+        {
+          "feature": "monthly_income",
+          "binning": "decile",
+          "psi": 0.0025562792392662933,
+          "flag": "ok"
+        },
+        {
+          "feature": "existing_debt",
+          "binning": "decile",
+          "psi": 0.0032043829012302263,
+          "flag": "ok"
+        },
+        {
+          "feature": "prior_application_count",
+          "binning": "value",
+          "psi": 0.11502180568299562,
+          "flag": "warn"
+        },
+        {
+          "feature": "prior_decline_count",
+          "binning": "value",
+          "psi": 0.02642877177861846,
+          "flag": "ok"
+        }
+      ],
+      "description": "OOT approved-and-observable versus the train labelled slice. This is the natural time shift, not an injected perturbation.",
+      "n_reference": 15634,
+      "n_current": 6022
+    },
+    "bureau_score_shifted_minus_40": {
+      "thresholds": {
+        "warn": 0.1,
+        "alert": 0.25
+      },
+      "overall_flag": "warn",
+      "series": [
+        {
+          "feature": "score",
+          "binning": "decile",
+          "psi": 0.08388739861377184,
+          "flag": "ok"
+        },
+        {
+          "feature": "bureau_score",
+          "binning": "decile",
+          "psi": 0.14637172206672566,
+          "flag": "warn"
+        },
+        {
+          "feature": "estimated_dti",
+          "binning": "decile",
+          "psi": 0.00168885956959197,
+          "flag": "ok"
+        },
+        {
+          "feature": "requested_to_income",
+          "binning": "decile",
+          "psi": 0.0009241200498672641,
+          "flag": "ok"
+        },
+        {
+          "feature": "debt_to_annual_income",
+          "binning": "decile",
+          "psi": 0.0013366197727069863,
+          "flag": "ok"
+        },
+        {
+          "feature": "monthly_income",
+          "binning": "decile",
+          "psi": 0.0025562792392662933,
+          "flag": "ok"
+        },
+        {
+          "feature": "existing_debt",
+          "binning": "decile",
+          "psi": 0.0032043829012302263,
+          "flag": "ok"
+        },
+        {
+          "feature": "prior_application_count",
+          "binning": "value",
+          "psi": 0.11502180568299562,
+          "flag": "warn"
+        },
+        {
+          "feature": "prior_decline_count",
+          "binning": "value",
+          "psi": 0.02642877177861846,
+          "flag": "ok"
+        }
+      ],
+      "description": "Synthetic shifted batch: OOT with `bureau_score` reduced by 40 points, then rescored. This typically lands in the warn band.",
+      "n_reference": 15634,
+      "n_current": 6022
+    },
+    "bureau_score_shifted_minus_80": {
+      "thresholds": {
+        "warn": 0.1,
+        "alert": 0.25
+      },
+      "overall_flag": "alert",
+      "series": [
+        {
+          "feature": "score",
+          "binning": "decile",
+          "psi": 0.33835515587232035,
+          "flag": "alert"
+        },
+        {
+          "feature": "bureau_score",
+          "binning": "decile",
+          "psi": 1.528873705503284,
+          "flag": "alert"
+        },
+        {
+          "feature": "estimated_dti",
+          "binning": "decile",
+          "psi": 0.00168885956959197,
+          "flag": "ok"
+        },
+        {
+          "feature": "requested_to_income",
+          "binning": "decile",
+          "psi": 0.0009241200498672641,
+          "flag": "ok"
+        },
+        {
+          "feature": "debt_to_annual_income",
+          "binning": "decile",
+          "psi": 0.0013366197727069863,
+          "flag": "ok"
+        },
+        {
+          "feature": "monthly_income",
+          "binning": "decile",
+          "psi": 0.0025562792392662933,
+          "flag": "ok"
+        },
+        {
+          "feature": "existing_debt",
+          "binning": "decile",
+          "psi": 0.0032043829012302263,
+          "flag": "ok"
+        },
+        {
+          "feature": "prior_application_count",
+          "binning": "value",
+          "psi": 0.11502180568299562,
+          "flag": "warn"
+        },
+        {
+          "feature": "prior_decline_count",
+          "binning": "value",
+          "psi": 0.02642877177861846,
+          "flag": "ok"
+        }
+      ],
+      "description": "Synthetic shifted batch: OOT with `bureau_score` reduced by 80 points, then rescored, to exercise the alert path (PSI \u2265 0.25).",
+      "n_reference": 15634,
+      "n_current": 6022
+    }
+  }
+}
